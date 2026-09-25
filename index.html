@@ -77,6 +77,38 @@ function findInv(name){let n=(name||"").toLowerCase();return invasive.find(x=>n.
 function confidence(s){return s>=.8?["green","Väga tõenäoline"]:s>=.6?["yellow","Tõenäoline"]:s>=.4?["orange","Võimalik"]:["red","Ebakindel"]}
 
 async function handleFiles(fs){let a=fs.filter(isJpg);if(!a.length){$("status").textContent="Lisa JPG/JPEG failid.";return}for(let f of a)await identify(f);$("status").textContent=`Valmis — ${a.length} pilti töödeldud.`}
+
+const broadPlantGroups={
+  Juniperus:"Kadakas", Pinus:"Mänd", Picea:"Kuusk", Abies:"Nulg",
+  Betula:"Kask", Quercus:"Tamm", Acer:"Vaher", Salix:"Paju",
+  Populus:"Pappel", Alnus:"Lepp", Fraxinus:"Saar", Sorbus:"Pihlakas",
+  Tilia:"Pärn", Ulmus:"Jalakas", Prunus:"Ploom/Kirss", Malus:"Õunapuu",
+  Pyrus:"Pirnipuu", Rosa:"Roos", Rubus:"Vaarika/põldmarja perekond",
+  Vaccinium:"Mustika perekond", Taraxacum:"Võilill", Trifolium:"Ristik",
+  Heracleum:"Karumõõk", Lupinus:"Lupiin", Impatiens:"Impatiens",
+  Solidago:"Kuldkann", Fallopia:"Parasiiditatar"
+};
+function scientificName(x){
+  return x?.species?.scientificNameWithoutAuthor||x?.species?.scientificName||"";
+}
+function genusOf(name){return String(name).trim().split(/\s+/)[0]||""}
+function broadName(results, top){
+  const genus=genusOf(scientificName(top));
+  if(!genus)return "Taim";
+  return broadPlantGroups[genus]||`${genus} perekond`;
+}
+function broadConfidence(results, top){
+  const genus=genusOf(scientificName(top));
+  if(!genus)return Number(top?.score)||0;
+  // Pl@ntNet returns several candidates. Add the scores belonging
+  // to the same genus to estimate confidence in the broader group.
+  // This is deliberately capped at 99% and is NOT presented as species confidence.
+  const sum=(results||[]).reduce((a,r)=>{
+    return a+(genusOf(scientificName(r))===genus ? (Number(r.score)||0) : 0);
+  },0);
+  return Math.min(.99,Math.max(Number(top?.score)||0,sum));
+}
+
 async function identify(file){
  let url=URL.createObjectURL(file),row=document.createElement("tr");row.innerHTML=`<td><img class="thumb" src="${url}"><br><small>${esc(file.name)}</small></td><td>⏳ töötlen...</td><td>–</td><td>⏳</td>`;$("results").appendChild(row);
  let exif={};try{exif=await exifr.parse(file,{gps:true,make:true,model:true})||{}}catch(e){}
@@ -87,12 +119,13 @@ async function identify(file){
   let fd=new FormData();fd.append("image",file);if(gps){fd.append("latitude",gps[0]);fd.append("longitude",gps[1])}
   let r=await fetch(ANALYSIS_API_URL+"/identify",{method:"POST",body:fd}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||`Backend HTTP ${r.status}`);
   let b=d.results?.[0];if(!b){row.cells[1].textContent="Taime ei tuvastatud";return}
-  let sci=b.species?.scientificNameWithoutAuthor||b.species?.scientificName||d.bestMatch||"Teadmata",common=(b.species?.commonNames||[])[0]||"",score=Number(b.score)||0,c=confidence(score),iv=findInv(sci)||findInv(common);
-  row.cells[1].innerHTML=`<b>${esc(common||sci)}</b><br><small>${esc(sci)}</small><br><span class="badge ${c[0]}">${c[1]}</span>`;
+  let results=d.results||[],sci=b.species?.scientificNameWithoutAuthor||b.species?.scientificName||d.bestMatch||"Teadmata",common=(b.species?.commonNames||[])[0]||"",score=Number(b.score)||0,c=confidence(score);
+  let broad=broadName(results,b),broadScore=broadConfidence(results,b),bc=confidence(broadScore),iv=findInv(sci)||findInv(common);
+  row.cells[1].innerHTML=`<b>🌿 ${esc(broad)}</b><br><span class="badge ${bc[0]}">Üldmäärang: ${Math.round(broadScore*100)}%</span><hr style="border:0;border-top:1px solid #26352d;margin:8px 0"><b>Täpne liik: ${esc(common||sci)}</b><br><small>${esc(sci)}</small><br><span class="badge ${c[0]}">Liigi kindlus: ${Math.round(score*100)}% · ${c[1]}</span>`;
   row.cells[2].innerHTML=iv?`<span class="badge red">⚠️ Võimalik võõrliik</span><br><small>${esc(iv[1])}</small>`:`<span class="badge green">🟢 Ei leitud nimekirjast</span>`;
   $("statPlants").textContent=+$("statPlants").textContent+1;if(iv)$("statInv").textContent=+$("statInv").textContent+1;
   if(iv&&gps)addMarker(gps,"⚠️ "+iv[1],`${common||sci} · ${Math.round(score*100)}%`);
-  $("devPanel").textContent=`Species: ${sci}\nCommon: ${common||"-"}\nConfidence: ${Math.round(score*100)}%\nGPS: ${gps?"YES":"NO"}\nAPI: ${d.version||"-"}`;
+  $("devPanel").textContent=`Broad group: ${broad}\nBroad confidence: ${Math.round(broadScore*100)}%\nSpecies: ${sci}\nCommon: ${common||"-"}\nSpecies confidence: ${Math.round(score*100)}%\nGPS: ${gps?"YES":"NO"}\nAPI: ${d.version||"-"}`;
   let u=(await sb.auth.getUser()).data.user;if(u)await sb.from("plant_findings").insert({user_id:u.id,species_scientific:sci,common_name:common||null,confidence:score,latitude:gps?.[0]??null,longitude:gps?.[1]??null,is_possible_invasive:!!iv,source:"image"});
  }catch(e){row.cells[1].innerHTML=`❌ ${esc(e.message)}`;$("devPanel").textContent=e.stack||e.message}
 }
@@ -101,7 +134,7 @@ function addMarker(g,t,d){let m=L.marker(g).addTo(map).bindPopup(`<b>${esc(t)}</
 $("videoFile").onchange=()=>{let f=$("videoFile").files[0];if(!f)return;$("video").src=URL.createObjectURL(f);$("videoBox").classList.remove("hidden");$("videoStatus").textContent="Video valmis: "+f.name};
 function seek(v,t){return new Promise(res=>{let f=()=>{v.removeEventListener("seeked",f);res()};v.addEventListener("seeked",f);v.currentTime=Math.min(t,Math.max(0,v.duration-.05))})}
 async function scanVideo(){let v=$("video"),step=+$("interval").value;if(!v.duration)return;$("frames").innerHTML="";let canvas=document.createElement("canvas"),ctx=canvas.getContext("2d"),n=0;for(let t=0;t<v.duration;t+=step){await seek(v,t);canvas.width=v.videoWidth;canvas.height=v.videoHeight;ctx.drawImage(v,0,0);let blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",.85)),div=document.createElement("div");div.className="frame";div.innerHTML=`<img src="${URL.createObjectURL(blob)}"><small>⏱ ${t.toFixed(1)} s · kaader ${n}</small><div id="vf${n}" class="status">⏳ analüüsin...</div>`;$("frames").appendChild(div);analyzeFrame(blob,n);n++}$("videoStatus").textContent=`Valmis — ${n} kaadrit.`}
-async function analyzeFrame(blob,n){try{let fd=new FormData();fd.append("image",new File([blob],`video_${n}.jpg`,{type:"image/jpeg"}));let r=await fetch(ANALYSIS_API_URL+"/identify",{method:"POST",body:fd}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||`HTTP ${r.status}`);let b=d.results?.[0];if(!b){$("vf"+n).textContent="Taimi ei tuvastatud";return}let s=b.species?.scientificNameWithoutAuthor||b.species?.scientificName||d.bestMatch||"Teadmata",iv=findInv(s),sc=Number(b.score)||0;$("vf"+n).innerHTML=iv?`<span class="badge red">⚠️ ${esc(iv[1])}</span><br>${Math.round(sc*100)}%`:`🌿 ${esc(s)}<br>${Math.round(sc*100)}%`;if(iv){let a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`BioGlow_invasive_${n}.jpg`;a.textContent="💾 Salvesta kaader";a.style.display="block";a.style.marginTop="6px";$("vf"+n).appendChild(a)}}catch(e){$("vf"+n).textContent="❌ "+e.message}}
+async function analyzeFrame(blob,n){try{let fd=new FormData();fd.append("image",new File([blob],`video_${n}.jpg`,{type:"image/jpeg"}));let r=await fetch(ANALYSIS_API_URL+"/identify",{method:"POST",body:fd}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||`HTTP ${r.status}`);let b=d.results?.[0];if(!b){$("vf"+n).textContent="Taimi ei tuvastatud";return}let rs=d.results||[],s=b.species?.scientificNameWithoutAuthor||b.species?.scientificName||d.bestMatch||"Teadmata",iv=findInv(s),sc=Number(b.score)||0,bn=broadName(rs,b),bs=broadConfidence(rs,b);$("vf"+n).innerHTML=iv?`<span class="badge red">⚠️ ${esc(iv[1])}</span><br>🌿 ${esc(bn)} · ${Math.round(bs*100)}%<br>Täpne liik: ${esc(s)} · ${Math.round(sc*100)}%`:`🌿 ${esc(bn)} · ${Math.round(bs*100)}%<br>Täpne liik: ${esc(s)} · ${Math.round(sc*100)}%`;if(iv){let a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`BioGlow_invasive_${n}.jpg`;a.textContent="💾 Salvesta kaader";a.style.display="block";a.style.marginTop="6px";$("vf"+n).appendChild(a)}}catch(e){$("vf"+n).textContent="❌ "+e.message}}
 </script>
 </body>
 </html>
