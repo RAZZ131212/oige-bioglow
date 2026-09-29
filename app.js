@@ -1,151 +1,677 @@
-const WORKER="https://bioglow.robootikaring.workers.dev";
-const $=id=>document.getElementById(id);
-const go=id=>$(id)?.scrollIntoView({behavior:"smooth",block:"start"});
-const esc=s=>String(s??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;"}[c]));
-const norm=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+(() => {
+  'use strict';
 
-let chosenPlant=null;
-let chosenFile=null;
-let chosenLocation=null;
-let timer=null;
-let marker=null;
-let mapPickMode=false;
-let toastTimer=null;
+  const WORKER = 'https://bioglow.robootikaring.workers.dev';
+  const $ = id => document.getElementById(id);
+  const norm = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const esc = value => String(value ?? '').replace(/[&<>\"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[char]));
 
-const EXTRA_NAMES={"saar":"Fraxinus excelsior","harilik saar":"Fraxinus excelsior","jalakas":"Ulmus glabra","harilik jalakas":"Ulmus glabra","paakspuu":"Frangula alnus","harilik paakspuu":"Frangula alnus","lodjapuu":"Viburnum opulus","harilik lodjapuu":"Viburnum opulus","sinilill":"Hepatica nobilis","nurmenukk":"Primula veris","metsmaasikas":"Fragaria vesca","raudrohi":"Achillea millefolium","valge ristik":"Trifolium repens","punane ristik":"Trifolium pratense","põdrakanep":"Chamaenerion angustifolium","harilik kuslapuu":"Lonicera xylosteum","kuslapuu":"Lonicera xylosteum"};
-const aliasFor=q=>SIMPLE_NAMES[norm(q)]||EXTRA_NAMES[norm(q)];
+  const EXTRA_NAMES = {
+    'saar':'Fraxinus excelsior','harilik saar':'Fraxinus excelsior','jalakas':'Ulmus glabra','harilik jalakas':'Ulmus glabra',
+    'paakspuu':'Frangula alnus','harilik paakspuu':'Frangula alnus','lodjapuu':'Viburnum opulus','harilik lodjapuu':'Viburnum opulus',
+    'sinilill':'Hepatica nobilis','nurmenukk':'Primula veris','metsmaasikas':'Fragaria vesca','raudrohi':'Achillea millefolium',
+    'valge ristik':'Trifolium repens','punane ristik':'Trifolium pratense','põdrakanep':'Chamaenerion angustifolium',
+    'harilik kuslapuu':'Lonicera xylosteum','kuslapuu':'Lonicera xylosteum'
+  };
 
-const map=L.map("map",{zoomControl:true}).setView([58.65,25.1],7);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);
-map.on("click",e=>{if(mapPickMode){setLocation(e.latlng.lat,e.latlng.lng,"kaart");mapPickMode=false;$("mapModeBadge").textContent="Punkt valitud";toast("Asukoht valitud kaardilt.")}});
+  const GENERAL_BY_GENUS = {
+    Quercus:'tamm',Juniperus:'kadakas',Betula:'kask',Salix:'paju',Pinus:'mänd',Picea:'kuusk',Acer:'vaher',Tilia:'pärn',
+    Sorbus:'pihlakas',Alnus:'lepp',Populus:'haab',Corylus:'sarapuu',Prunus:'toomingas',Malus:'õunapuu',Pyrus:'pirnipuu',
+    Rosa:'kibuvits',Fraxinus:'saar',Ulmus:'jalakas',Frangula:'paakspuu',Viburnum:'lodjapuu',Lonicera:'kuslapuu',
+    Calluna:'kanarbik',Vaccinium:'mustikas / pohl',Achillea:'raudrohi',Trifolium:'ristik',Fragaria:'maasikas',
+    Primula:'nurmenukk',Hepatica:'sinilill',Chamaenerion:'põdrakanep',Epilobium:'pajulill',Allium:'lauk',Myrica:'porss',
+    Iris:'võhumõõk',Platanthera:'käokeel',Dactylorhiza:'sõrmkäpp',Epipactis:'neiuvaip',Orchis:'käpp',Pulsatilla:'karukell',
+    Nymphaea:'vesiroos',Nuphar:'vesikupp',Potamogeton:'penikeel',Carex:'tarn',Juncus:'luga',Festuca:'aruhein',Poa:'nurmikas',
+    Rubus:'murakas / vaarikas',Viola:'kannike',Geranium:'kurereha',Artemisia:'puju',Hypericum:'naistepuna',Lathyrus:'seahernes',
+    Vicia:'hiirehernes',Lotus:'nõiahammas',Thalictrum:'ängelhein',Potentilla:'maran',Dasiphora:'maran',Cornus:'kukits',
+    Euonymus:'kikkapuu',Lycopodium:'kold',Huperzia:'kold',Goodyera:'öövilge',Gymnadenia:'käoraamat',Neottia:'käopõll / pesajuur',
+    Lamium:'iminõges',Ficaria:'kanakoole',Anemone:'ülane',Bellis:'kirikakar',Chelidonium:'vereurmarohi',Urtica:'nõges',
+    Ranunculus:'tulikas',Taraxacum:'võilill',Plantago:'teeleht',Galium:'madar',Veronica:'mailane',Stellaria:'tähthein',
+    Cerastium:'kadakkaer',Myosotis:'meelespea',Glechoma:'maajalg',Aegopodium:'naat',Anthriscus:'harakputk',Heracleum:'karuputk',
+    Daucus:'porgand',Rumex:'oblikas',Polygonum:'kirburohi',Persicaria:'kirburohi',Chenopodium:'hanemalts',Atriplex:'malts',
+    Cirsium:'ohakas',Carduus:'ohakas',Sonchus:'piimohakas',Leontodon:'seanupp',Hypochaeris:'seanupp',Crepis:'koeratubakas',
+    Hieracium:'hunditubakas',Pilosella:'karutubakas',Arctium:'takjas',Centaurea:'jumikas',Matricaria:'kummel',
+    Tripleurospermum:'kummel',Tanacetum:'soolikarohi',Tussilago:'paiseleht',Solidago:'kuldvits',Campanula:'kellukas',
+    Knautia:'äiatar',Scabiosa:'tähtpea',Succisa:'peetrileht',Medicago:'lutsern',Melilotus:'mesikas',Astragalus:'hundihammas',
+    Oxytropis:'hundihammas',Oenothera:'kuningakepp',Filipendula:'angervaks',Alchemilla:'kortsleht',Geum:'maajalg',
+    Sanguisorba:'punnpea',Agrimonia:'maarjalepp',Lysimachia:'metstarn',Lythrum:'kukesaba',Mentha:'münt',Thymus:'liivatee',
+    Origanum:'pune',Prunella:'käbihein',Ajuga:'akakapsas',Salvia:'salvei',Stachys:'nõianõges',Galeopsis:'kõrvik',
+    Scutellaria:'kilbuk',Erodium:'kurereha',Oxalis:'jänesekapsas',Caltha:'varsakabi',Aquilegia:'kurekell',Aconitum:'käoking',
+    Convallaria:'maikelluke',Maianthemum:'laanelill',Paris:'ussilakk',Polygonatum:'kuutõverohi',Asarum:'metspipar',
+    Pulmonaria:'kopsurohi',Symphytum:'varemerohi',Digitalis:'sõrmkübar',Linaria:'käokannus',Melampyrum:'härghein',
+    Rhinanthus:'robirohi',Euphrasia:'silmarohi',Pedicularis:'kuuskjalg',Orobanche:'soomukas',Equisetum:'osi',
+    Dryopteris:'sõnajalg',Athyrium:'sõnajalg',Gymnocarpium:'kolmissõnajalg',Pteridium:'kilpjalg',Polypodium:'kiviürt',
+    Asplenium:'raunjalg',Luzula:'piiphein',Eriophorum:'villpea',Eleocharis:'alss',Scirpus:'kõrkjas',Schoenoplectus:'kõrkjas',
+    Typha:'hundinui',Phragmites:'pilliroog',Phalaris:'paelrohi',Deschampsia:'kastik',Agrostis:'kastehein',Dactylis:'kerahein',
+    Phleum:'timut',Alopecurus:'rebasesaba',Bromus:'luste',Elymus:'orashein'
+  };
 
-function toast(message){const el=$("toast");el.textContent=message;el.classList.remove("hidden");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add("hidden"),2600)}
-function setStatus(message,type=""){const el=$("status");el.textContent=message;el.className=`status-line ${type}`}
-function matchesName(name,list){const n=norm(name);return list.some(x=>n===norm(x)||n.startsWith(norm(x)+" ")||norm(x).startsWith(n+" "))}
-function isInvasive(name){return matchesName(name,INVASIVE)}
-function protectedInfo(name){
-  if(matchesName(name,PROTECTED_I))return{category:"I",common:null};
-  if(matchesName(name,PROTECTED_II))return{category:"II",common:null};
-  const n=norm(name);
-  for(const [common,names] of PROTECTED_III){if(names.some(x=>n===norm(x)||n.startsWith(norm(x)+" ")||norm(x).startsWith(n+" ")))return{category:"III",common}}
-  return null;
-}
-function protectionLabel(name){const p=protectedInfo(name);return p?`${p.category} kaitsekategooria`:"ei ole kaitsekategoorias"}
-function quickPlant(name){$("plantInput").value=name;chosenPlant=null;$("clearPlant").classList.remove("hidden");loadSuggestions(name,true);go("analyze")}
+  const LAND_LABELS = {
+    wetland:'Märgala',wood:'Mets',forest:'Mets',meadow:'Niit / rohumaa',grass:'Rohumaa',farmland:'Põllumaa',
+    orchard:'Viljapuuaed',heath:'Nõmm',scrub:'Põõsastik',residential:'Hoonestatud ala',industrial:'Tööstusala',
+    commercial:'Äriala',cemetery:'Haljasala',recreation_ground:'Haljasala'
+  };
 
-$("plantInput").addEventListener("input",()=>{
-  clearTimeout(timer);chosenPlant=null;renderChosenPlant();
-  const q=$("plantInput").value.trim();$("clearPlant").classList.toggle("hidden",!q);
-  if(q.length<2){$("suggest").classList.add("hidden");return}
-  timer=setTimeout(()=>loadSuggestions(q,false),220);
-});
-$("clearPlant").onclick=()=>{$("plantInput").value="";chosenPlant=null;renderChosenPlant();$("suggest").classList.add("hidden");$("clearPlant").classList.add("hidden")};
+  const state = {
+    plant: null,
+    file: null,
+    location: null,
+    marker: null,
+    map: null,
+    toastTimer: null,
+    searchTimer: null,
+    analysisId: 0
+  };
 
-async function gbifSuggest(q){const r=await fetch(`https://api.gbif.org/v1/species/suggest?q=${encodeURIComponent(q)}&limit=10`);if(!r.ok)throw Error(`GBIF species HTTP ${r.status}`);const d=await r.json();return d.filter(x=>x.rank==="SPECIES"||x.rank==="SUBSPECIES")}
-async function gbifMatch(name){const r=await fetch(`https://api.gbif.org/v1/species/match?name=${encodeURIComponent(name)}&kingdom=Plantae`);if(!r.ok)throw Error(`GBIF match HTTP ${r.status}`);const x=await r.json();if(!x.usageKey&&!x.speciesKey)return null;return{key:x.usageKey||x.speciesKey,canonicalName:x.canonicalName||x.scientificName||name,scientificName:x.scientificName||x.canonicalName||name,rank:x.rank||"SPECIES"}}
-function suggestionButton(x,raw=""){const sci=x.canonicalName||x.scientificName||raw||"",friendly=DISPLAY[sci]||x.vernacularName||raw||"",key=x.key||x.usageKey;return `<button type="button" onclick="choosePlant(${key},'${encodeURIComponent(sci)}','${encodeURIComponent(friendly)}')"><b>${esc(friendly||sci)}</b>${friendly&&friendly!==sci?`<br><small>${esc(sci)}</small>`:""}</button>`}
-async function loadSuggestions(q,autoPick=false){
-  try{
-    const alias=aliasFor(q);let items=[];
-    if(alias){const exact=await gbifMatch(alias).catch(()=>null);if(exact)items.push(exact)}
-    const suggested=await gbifSuggest(alias||q).catch(()=>[]),seen=new Set(items.map(x=>x.key||x.usageKey));
-    for(const x of suggested){const k=x.key||x.usageKey;if(k&&!seen.has(k)){items.push(x);seen.add(k)}}
-    if(autoPick&&items[0]){const x=items[0],sci=x.canonicalName||x.scientificName||alias||q;choosePlant(x.key||x.usageKey,encodeURIComponent(sci),encodeURIComponent(DISPLAY[sci]||x.vernacularName||q));return}
-    $("suggest").innerHTML=items.slice(0,8).map(x=>suggestionButton(x,q)).join("")||'<button type="button" disabled>Ei leidnud vastet.</button>';
-    $("suggest").classList.remove("hidden");
-  }catch(e){console.error(e);$("suggest").innerHTML='<button type="button" disabled>Taimede otsing ebaõnnestus.</button>';$("suggest").classList.remove("hidden")}
-}
+  function debug(...args){ console.debug('[BioGlow]', ...args); }
+  function scrollToId(id){ $(id)?.scrollIntoView({behavior:'smooth', block:'start'}); }
+  function setStatus(message, type=''){
+    const node = $('status');
+    if(!node) return;
+    node.textContent = message;
+    node.className = `status ${type}`;
+  }
+  function toast(message){
+    const node = $('toast');
+    if(!node) return;
+    node.textContent = message;
+    node.classList.remove('hidden');
+    clearTimeout(state.toastTimer);
+    state.toastTimer = setTimeout(() => node.classList.add('hidden'), 2600);
+  }
+  function matchesName(name, list){
+    const n = norm(name);
+    return list.some(item => {
+      const i = norm(item);
+      return n === i || n.startsWith(i + ' ') || i.startsWith(n + ' ');
+    });
+  }
+  function isInvasive(name){ return matchesName(name, INVASIVE); }
+  function protectedInfo(name){
+    if(matchesName(name, PROTECTED_I)) return {category:'I', common:null};
+    if(matchesName(name, PROTECTED_II)) return {category:'II', common:null};
+    const n = norm(name);
+    for(const [common, names] of PROTECTED_III){
+      if(names.some(item => {
+        const i = norm(item);
+        return n === i || n.startsWith(i + ' ') || i.startsWith(n + ' ');
+      })) return {category:'III', common};
+    }
+    return null;
+  }
+  function generalName(scientific, shown=''){
+    const sci = String(scientific || '').trim();
+    const genus = sci.split(/\s+/)[0];
+    if(GENERAL_BY_GENUS[genus]) return GENERAL_BY_GENUS[genus];
+    let name = String(shown || '').trim().toLowerCase();
+    if(name.startsWith('harilik ')) name = name.slice(8);
+    const exact = {
+      'arukask':'kask','sookask':'kask','sanglepp':'lepp','hall lepp':'lepp','harilik haab':'haab',
+      'harilik sarapuu':'sarapuu','harilik toomingas':'toomingas','harilik vaher':'vaher','harilik pärn':'pärn','harilik pihlakas':'pihlakas'
+    };
+    if(exact[name]) return exact[name];
+    if(/^[A-Z][a-z-]+\s+[a-z]/.test(String(shown || ''))) return genus || 'taim';
+    return name || shown || scientific || 'taim';
+  }
+  function aliasFor(query){ return SIMPLE_NAMES[norm(query)] || EXTRA_NAMES[norm(query)] || null; }
 
-function choosePlant(key,sciEnc,commonEnc){
-  const scientific=decodeURIComponent(sciEnc),common=decodeURIComponent(commonEnc||"");
-  chosenPlant={key:Number(key),scientific,common:common||DISPLAY[scientific]||scientific,media:""};
-  $("plantInput").value=chosenPlant.common;$("clearPlant").classList.remove("hidden");$("suggest").classList.add("hidden");
-  renderChosenPlant();loadSelectedPlantMedia();
-}
-async function resolveTypedPlant(){if(chosenPlant)return chosenPlant;const raw=$("plantInput").value.trim();if(!raw)return null;const alias=aliasFor(raw);try{let x=alias?await gbifMatch(alias):null;if(!x){const a=await gbifSuggest(alias||raw);x=a[0]||null}if(!x)return null;const sci=x.canonicalName||x.scientificName||alias||raw;choosePlant(x.key||x.usageKey,encodeURIComponent(sci),encodeURIComponent(DISPLAY[sci]||x.vernacularName||raw));return chosenPlant}catch(e){console.error(e);return null}}
-async function loadSelectedPlantMedia(){if(!chosenPlant)return;const temp={key:chosenPlant.key,media:""};await mediaFor(temp);if(chosenPlant&&temp.media){chosenPlant.media=temp.media;renderChosenPlant()}}
-function renderChosenPlant(){
-  const box=$("chosen");if(!chosenPlant){box.classList.add("hidden");box.innerHTML="";return}
-  const p=protectedInfo(chosenPlant.scientific),invasive=isInvasive(chosenPlant.scientific);
-  const image=chosenPlant.media?`<img src="${esc(chosenPlant.media)}" alt="${esc(chosenPlant.common)}" referrerpolicy="no-referrer">`:'<div class="selected-placeholder">🌿</div>';
-  let badge=invasive?'<span class="mini-badge mini-invasive">võõr-/invasiivne kontroll</span>':p?`<span class="mini-badge mini-protected">🛡 ${p.category} kaitsekategooria</span>`:'<span class="mini-badge mini-normal">tavapärane liik</span>';
-  box.innerHTML=`${image}<div><div class="name">${esc(chosenPlant.common)}</div><div class="latin">${esc(chosenPlant.scientific)}</div><div class="selected-badges">${badge}</div></div>`;box.classList.remove("hidden")
-}
+  async function fetchWithTimeout(url, options={}, timeoutMs=6000){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try{
+      const response = await fetch(url, {...options, signal: controller.signal});
+      if(!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  async function fetchJson(url, options={}, timeoutMs=6000){
+    return (await fetchWithTimeout(url, options, timeoutMs)).json();
+  }
 
-$("files").onchange=()=>setFile($("files").files[0]);
-$("drop").ondragover=e=>{e.preventDefault();$("drop").classList.add("drag")};
-$("drop").ondragleave=()=>$("drop").classList.remove("drag");
-$("drop").ondrop=e=>{e.preventDefault();$("drop").classList.remove("drag");setFile(e.dataTransfer.files[0])};
-async function setFile(f){
-  if(!f||!/\.jpe?g$/i.test(f.name)){chosenFile=null;setStatus("Kasuta JPG/JPEG fotot.","error");return}
-  chosenFile=f;$("preview").src=URL.createObjectURL(f);$("photoPreviewWrap").classList.remove("hidden");$("photoMeta").textContent=`${f.name} · ${(f.size/1024/1024).toFixed(1)} MB`;setStatus("Foto lisatud. Loen GPS-i…");
-  try{const ex=await exifr.parse(f,{gps:true})||{};if(ex.latitude!=null&&ex.longitude!=null){setLocation(ex.latitude,ex.longitude,"foto GPS");setStatus("Foto GPS leitud.","ok")}else{setStatus("Fotol GPS puudub — kasuta oma asukohta või vali punkt kaardilt.")}}catch(e){console.warn(e);setStatus("GPS-i ei saanud fotost lugeda — vali asukoht käsitsi.")}
-}
-function removePhoto(){chosenFile=null;$("files").value="";$("photoPreviewWrap").classList.add("hidden");$("preview").src="";setStatus("Foto eemaldatud.")}
-function setLocation(lat,lon,source){
-  chosenLocation={lat:Number(lat),lon:Number(lon),source};
-  if(marker)map.removeLayer(marker);marker=L.marker([lat,lon]).addTo(map).bindPopup("Analüüsitav koht").openPopup();map.setView([lat,lon],14);
-  $("coordsText").textContent=`${lat.toFixed(5)}, ${lon.toFixed(5)}`;$("locationSource").textContent=source;$("locationState").textContent=`Asukoht valmis: ${source}`;$("mapModeBadge").textContent=source;
-}
-function enableMapPick(){mapPickMode=true;$("mapModeBadge").textContent="Klõpsa kaardil";toast("Klõpsa kaardil kohale, mida soovid analüüsida.");go("map")}
-function useBrowserLocation(){
-  if(!navigator.geolocation){toast("Brauser ei toeta asukoha määramist.");return}
-  $("locationState").textContent="Otsin sinu asukohta…";
-  navigator.geolocation.getCurrentPosition(p=>{setLocation(p.coords.latitude,p.coords.longitude,"seadme asukoht");toast("Asukoht leitud.")},()=>{$("locationState").textContent="Asukoha luba ei antud või asukohta ei leitud.";toast("Asukohta ei saanud kasutada.")},{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
-}
+  function initMap(){
+    if(!window.L){
+      debug('Leaflet puudub');
+      $('map').innerHTML = '<div class="empty-result"><b>Kaarti ei saanud laadida</b><p>Värskenda lehte või kontrolli internetiühendust.</p></div>';
+      return;
+    }
+    state.map = L.map('map', {zoomControl:true}).setView([58.65, 25.1], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(state.map);
+    state.map.on('click', event => {
+      setLocation(event.latlng.lat, event.latlng.lng, 'kaardilt valitud');
+      toast('Asukoht valitud kaardilt.');
+    });
+    try{
+      const soil = L.tileLayer.wms('https://kaart.maaamet.ee/wms/alus-geo?', {
+        layers:'mullaraster',format:'image/png',transparent:true,version:'1.1.1',attribution:'Mullastik, Maa- ja Ruumiamet'
+      });
+      const land = L.tileLayer.wms('https://kaart.maaamet.ee/wms/alus-geo?', {
+        layers:'BK_METS,BK_LAGE,BK_SOO,BK_RABA,BK_POLD,BK_POOSASTIK,BK_ASUSTUS,BK_HALJASALA',
+        format:'image/png',transparent:true,version:'1.1.1',attribution:'Maakate, Maa- ja Ruumiamet'
+      });
+      L.control.layers({}, {'MaRu mullakaart':soil,'MaRu maakate':land}, {collapsed:true}).addTo(state.map);
+    } catch(error){ debug('MaRu kihid ei laadinud', error); }
+  }
 
-async function nearby(lat,lon){
-  const u=new URL("https://api.gbif.org/v1/occurrence/search");u.searchParams.set("decimalLatitude",`${lat-.09},${lat+.09}`);u.searchParams.set("decimalLongitude",`${lon-.16},${lon+.16}`);u.searchParams.set("kingdomKey","6");u.searchParams.set("country","EE");u.searchParams.set("hasCoordinate","true");u.searchParams.set("limit","300");
-  const r=await fetch(u);if(!r.ok)throw Error("GBIF HTTP "+r.status);const d=await r.json(),m=new Map();
-  for(const x of d.results||[]){if(!x.speciesKey||!x.species)continue;let v=m.get(x.speciesKey)||{key:x.speciesKey,name:DISPLAY[x.species]||x.vernacularName||x.species,scientific:x.species,count:0,latest:"",media:"",license:"",creator:""};v.count++;if((x.eventDate||"")>v.latest)v.latest=x.eventDate||"";const med=(x.media||[]).find(z=>z.identifier);if(!v.media&&med){v.media=med.identifier;v.license=med.license||"";v.creator=med.creator||""}m.set(x.speciesKey,v)}
-  return[...m.values()].sort((a,b)=>b.count-a.count)
-}
-async function mediaFor(x){if(x.media)return x;try{const r=await fetch(`https://api.gbif.org/v1/occurrence/search?taxon_key=${x.key}&media_type=StillImage&limit=8`),d=await r.json();for(const o of d.results||[]){const m=(o.media||[]).find(z=>z.identifier);if(m){x.media=m.identifier;x.license=m.license||"";x.creator=m.creator||"";break}}}catch(e){console.warn("media",e)}return x}
-async function selectedCount(key,lat,lon){const u=new URL("https://api.gbif.org/v1/occurrence/search");u.searchParams.set("taxon_key",key);u.searchParams.set("decimalLatitude",`${lat-.09},${lat+.09}`);u.searchParams.set("decimalLongitude",`${lon-.16},${lon+.16}`);u.searchParams.set("country","EE");u.searchParams.set("hasCoordinate","true");u.searchParams.set("limit","0");const r=await fetch(u);if(!r.ok)throw Error(`GBIF count HTTP ${r.status}`);const d=await r.json();return d.count||0}
-async function photoAI(f,gps){if(!f)return"Fotot ei kasutatud";try{const fd=new FormData();fd.append("image",f);fd.append("latitude",gps.lat);fd.append("longitude",gps.lon);const r=await fetch(WORKER+"/identify",{method:"POST",body:fd});if(!r.ok)throw Error(`AI HTTP ${r.status}`);const d=await r.json(),b=d.results?.[0];return b?.species?.commonNames?.[0]||b?.species?.scientificNameWithoutAuthor||"AI analüüs tehtud"}catch(e){console.warn(e);return"AI polnud saadaval"}}
+  function setLocation(lat, lon, source){
+    lat = Number(lat); lon = Number(lon);
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)){
+      setStatus('Asukoha koordinaadid ei ole õiged.', 'error');
+      return;
+    }
+    state.location = {lat, lon, source};
+    if(state.map){
+      if(state.marker) state.map.removeLayer(state.marker);
+      state.marker = L.marker([lat, lon]).addTo(state.map).bindPopup('Analüüsitav koht').openPopup();
+      state.map.setView([lat, lon], 15);
+      setTimeout(() => state.map?.invalidateSize(), 80);
+    }
+    $('coordText').textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    $('mapBadge').textContent = source;
+    $('locationState').innerHTML = `<span class="dot ready"></span><span>Asukoht valmis: ${esc(source)}</span>`;
+    setStatus(`Asukoht valitud: ${source}.`, 'ok');
+  }
 
-function evidenceStrength(n,best){if(best<=0)return 0;return Math.max(0,Math.min(100,Math.round((n/best)*100)))}
-function confidenceWord(v){return v>=70?"tugev":v>=35?"keskmine":v>0?"nõrk":"puudub"}
-function selectedProtectionMessage(){const p=protectedInfo(chosenPlant.scientific);if(!p)return"";return p.category==="I"||p.category==="II"?`<div class="protection-callout"><b>🛡 ${p.category} kaitsekategooria.</b> BioGlow ei kuva selle liigi tundlikke täpseid kasvukohti ega käsitle seda tavapärase istutussoovitusena. Ära võta isendeid loodusest.</div>`:`<div class="protection-callout"><b>🛡 III kaitsekategooria.</b> Ära võta taime loodusest ümberistutamiseks; looduskaitse mõttes eelista olemasoleva kasvukoha hoidmist.</div>`}
-function renderSuitability(n,best,totalObs,aiText){
-  const p=protectedInfo(chosenPlant.scientific),invasive=isInvasive(chosenPlant.scientific),strength=evidenceStrength(n,best);let state="no",title="Ei sobi hästi",copy=`Selle taime kohta ei leitud lähialalt avalikku vaatlustõendit. Allpool on tugevama kohaliku andmetoega alternatiivid.`;
-  if(invasive){title="Ära istuta loodusesse";copy="See liik on BioGlow võõr-/invasiivsete liikide kontrollnimekirjas. Kohalike vaatlusandmete olemasolu ei muuda seda tavaliseks istutussoovituseks."}
-  else if(strength>=50){state="ok";title="Sobib";copy=`Valitud liigi kohta leiti lähialalt ${n} avalikku vaatlust. Kohalik levik toetab seda valikut.`}
-  else if(n>0){state="maybe";title="Võib sobida";copy=`Valitud liigi kohta leiti lähialalt ${n} vaatlust, kuid teistel liikidel on siin tugevam kohalik andmetugi.`}
-  const protection=p?`🛡 ${p.category} kaitsekategooria`:"kaitsekategooriat ei tuvastatud";
-  $("verdict").className=`verdict-card verdict-${state}`;
-  $("verdict").innerHTML=`<div class="verdict-top"><div><span class="verdict-state state-${state}">${invasive?"HOIATUS":state==="ok"?"SOBIVUS":state==="maybe"?"VAJAB KONTROLLI":"NÕRK SOBIVUS"}</span><h3>${title}</h3><div class="latin">${esc(chosenPlant.common)} · ${esc(chosenPlant.scientific)}</div></div></div><div class="result-badges"><span class="result-badge ${p?"badge-protected":"badge-normal"}">${esc(protection)}</span>${invasive?'<span class="result-badge badge-invasive">võõr-/invasiivse liigi hoiatus</span>':""}</div><div class="verdict-copy">${copy}</div>${selectedProtectionMessage()}`;
-  $("obsEvidence").textContent=`${n} valitud liigi vaatlust · ${totalObs} kirjet kokku`;
-  $("aiEvidence").textContent=aiText;
-  $("protectionEvidence").textContent=protection;
-  $("confidenceLabel").textContent=confidenceWord(strength);
-  $("confidenceBar").style.width=`${strength}%`;
-}
+  function useDeviceLocation(){
+    if(!navigator.geolocation){
+      setStatus('Brauser ei toeta asukoha määramist. Vali punkt kaardilt.', 'error');
+      return;
+    }
+    $('locationState').innerHTML = '<span class="dot"></span><span>Otsin sinu asukohta…</span>';
+    navigator.geolocation.getCurrentPosition(
+      pos => { setLocation(pos.coords.latitude, pos.coords.longitude, 'seadme asukoht'); toast('Asukoht leitud.'); },
+      error => {
+        const message = error.code === 1 ? 'Asukoha luba on keelatud. Vali punkt kaardilt.' : 'Asukohta ei saanud leida. Vali punkt kaardilt.';
+        $('locationState').innerHTML = `<span class="dot"></span><span>${esc(message)}</span>`;
+        setStatus(message, 'warn');
+      },
+      {enableHighAccuracy:true, timeout:12000, maximumAge:60000}
+    );
+  }
 
-async function renderConservation(list){
-  const hits=list.map(x=>({x,info:protectedInfo(x.scientific)})).filter(z=>z.info?.category==="III");
-  if(!hits.length){$("conservation").innerHTML=`<div class="conserve-card"><div class="conserve-placeholder">🛡</div><div><span class="step-label">LOODUSKAITSE</span><h3>III kategooria taime ei leitud</h3><p>Avaliku lähiala päringu põhjal ei leitud III kaitsekategooria taime. I ja II kategooria tundlikke täpseid kasvukohti BioGlow ei kuva.</p></div></div>`;return}
-  hits.sort((a,b)=>a.x.count-b.x.count);const h=hits[0];await mediaFor(h.x);const img=h.x.media?`<img src="${esc(h.x.media)}" alt="${esc(h.info.common||h.x.name)}" referrerpolicy="no-referrer">`:'<div class="conserve-placeholder">🛡</div>';
-  $("conservation").innerHTML=`<div class="conserve-card">${img}<div><span class="step-label">LOODUSKAITSE VÕIMALUS</span><h3>${esc(h.info.common||h.x.name)}</h3><div class="latin">${esc(h.x.scientific)} · III kaitsekategooria</div><p>Avalikus lähiala päringus oli selle liigi kohta ${h.x.count} vaatlust. See ei ole üleskutse taime ümber istutada — parem mõte on toetada või taastada talle sobivat kasvukohta.</p></div></div>`
-}
-async function renderAlternatives(list){
-  const good=list.filter(x=>!isInvasive(x.scientific)&&!protectedInfo(x.scientific)&&x.key!==chosenPlant.key).slice(0,6);await Promise.all(good.map(mediaFor));
-  if(!good.length){$("plants").innerHTML='<div class="empty-result"><b>Alternatiive jäi väheks</b><p>Avalikust lähiala päringust ei leitud piisavalt tavapäraseid kandidaate.</p></div>';return}
-  $("plants").innerHTML=good.map((x,i)=>{const image=x.media?`<img src="${esc(x.media)}" alt="${esc(x.name)}" loading="lazy" referrerpolicy="no-referrer">`:'<div class="plant-placeholder">🌿</div>';return `<article class="plant">${image}<div class="plant-body"><span class="plant-rank">${i===0?"TUGEVAM KANDIDAAT":`KANDIDAAT ${i+1}`}</span><h3>${esc(x.name)}</h3><div class="latin">${esc(x.scientific)}</div><div class="plant-evidence"><span>⌖</span><span>Kohalikke vaatlusi <b>${x.count}</b></span></div>${x.creator||x.license?`<div class="plant-meta">Pilt: GBIF${x.creator?` · ${esc(x.creator)}`:""}${x.license?` · ${esc(x.license)}`:""}</div>`:""}</div></article>`}).join("")
-}
+  async function readPhoto(file){
+    if(!file || !/\.jpe?g$/i.test(file.name)){
+      setStatus('Kasuta JPG või JPEG fotot.', 'error');
+      return;
+    }
+    state.file = file;
+    $('preview').src = URL.createObjectURL(file);
+    $('photoName').textContent = file.name;
+    $('photoMeta').textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB · GPS-i kontroll…`;
+    $('photoRow').classList.remove('hidden');
+    if(!window.exifr){
+      $('photoMeta').textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB · GPS-lugeja pole saadaval`;
+      return;
+    }
+    try{
+      const exif = await exifr.parse(file, {gps:true}) || {};
+      if(exif.latitude != null && exif.longitude != null){
+        setLocation(exif.latitude, exif.longitude, 'foto GPS');
+        $('photoMeta').textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB · GPS leitud`;
+      } else {
+        $('photoMeta').textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB · GPS puudub`;
+        setStatus('Fotol GPS puudub — vali asukoht kaardilt või seadmest.', 'warn');
+      }
+    } catch(error){
+      debug('EXIF viga', error);
+      $('photoMeta').textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB · GPS-i ei saanud lugeda`;
+    }
+  }
 
-async function runCheck(){
-  const btn=$("analyzeBtn");try{
-    if(!await resolveTypedPlant()){setStatus("Ma ei leidnud seda taime. Proovi nt „kadakas” või täpsemat nime.","error");return}
-    if(!chosenLocation&&chosenFile){try{const ex=await exifr.parse(chosenFile,{gps:true})||{};if(ex.latitude!=null&&ex.longitude!=null)setLocation(ex.latitude,ex.longitude,"foto GPS")}catch(e){}}
-    if(!chosenLocation){setStatus("Lisa asukoht: foto GPS, sinu asukoht või punkt kaardilt.","error");return}
-    btn.disabled=true;btn.innerHTML="Analüüsin…";setStatus("Kogun kohalikke andmeid…");$("emptyResult").classList.add("hidden");$("resultContent").classList.remove("hidden");$("verdict").innerHTML='<div class="verdict-copy">⏳ Arvutan tulemust…</div>';$("plants").innerHTML='<div class="empty-result"><p>⏳ Otsin sobivamaid taimi ja pilte…</p></div>';
-    const [list,aiText]=await Promise.all([nearby(chosenLocation.lat,chosenLocation.lon),photoAI(chosenFile,chosenLocation)]);
-    if(!list.length)throw Error("Selle koha ümbrusest ei saadud piisavalt avalikke taimevaatlusi.");
-    const n=await selectedCount(chosenPlant.key,chosenLocation.lat,chosenLocation.lon).catch(()=>0),best=list[0]?.count||0,totalObs=list.reduce((s,x)=>s+x.count,0);
-    renderSuitability(n,best,totalObs,aiText);await Promise.all([renderAlternatives(list),renderConservation(list)]);setStatus("Analüüs valmis.","ok");go("results")
-  }catch(e){console.error(e);setStatus(e.message||"Analüüs ebaõnnestus. Proovi uuesti.","error");toast("Analüüs ebaõnnestus — vaata veateadet.")}
-  finally{btn.disabled=false;btn.innerHTML='Analüüsi sobivust <span>→</span>'}
-}
+  function removePhoto(){
+    state.file = null;
+    $('files').value = '';
+    $('photoRow').classList.add('hidden');
+    $('preview').src = '';
+    $('photoName').textContent = '';
+    $('photoMeta').textContent = '';
+    setStatus(state.location ? 'Foto eemaldatud. Asukoht jääb alles.' : 'Foto eemaldatud.');
+  }
 
-function resetAnalysis(){chosenPlant=null;chosenFile=null;chosenLocation=null;mapPickMode=false;$("plantInput").value="";$("clearPlant").classList.add("hidden");renderChosenPlant();removePhoto();if(marker){map.removeLayer(marker);marker=null}map.setView([58.65,25.1],7);$("coordsText").textContent="–";$("locationSource").textContent="–";$("locationState").textContent="Asukohta pole veel valitud.";$("mapModeBadge").textContent="GPS / kaart";$("resultContent").classList.add("hidden");$("emptyResult").classList.remove("hidden");setStatus("Vali taim ja koht.");go("analyze")}
+  async function gbifMatch(name){
+    const data = await fetchJson(`https://api.gbif.org/v1/species/match?name=${encodeURIComponent(name)}&kingdom=Plantae`, {}, 5000);
+    if(!data.usageKey && !data.speciesKey) return null;
+    return {
+      key:data.usageKey || data.speciesKey,
+      scientific:data.canonicalName || data.scientificName || name,
+      vernacular:data.vernacularName || ''
+    };
+  }
+  async function gbifSuggest(query){
+    const data = await fetchJson(`https://api.gbif.org/v1/species/suggest?q=${encodeURIComponent(query)}&limit=10`, {}, 5000);
+    return (data || []).filter(item => item.rank === 'SPECIES' || item.rank === 'SUBSPECIES');
+  }
+  function setChosenPlant(plant){
+    state.plant = {...plant, common:plant.common || DISPLAY[plant.scientific] || plant.vernacular || plant.scientific, media:''};
+    $('plantInput').value = state.plant.common;
+    $('clearPlant').classList.remove('hidden');
+    $('suggest').classList.add('hidden');
+    renderChosenPlant();
+    loadChosenPlantImage(state.plant.key);
+  }
+  function renderChosenPlant(){
+    const root = $('chosen');
+    if(!state.plant){ root.classList.add('hidden'); root.innerHTML = ''; return; }
+    const protection = protectedInfo(state.plant.scientific);
+    const invasive = isInvasive(state.plant.scientific);
+    const badge = invasive
+      ? '<span class="tag danger">võõr-/invasiivse liigi kontroll</span>'
+      : protection
+        ? `<span class="tag protected">🛡 ${protection.category} kaitsekategooria</span>`
+        : '<span class="tag normal">tavapärane liik</span>';
+    const image = state.plant.media
+      ? `<div class="chosen-photo"><img src="${esc(state.plant.media)}" alt="${esc(state.plant.common)}" loading="lazy" referrerpolicy="no-referrer"></div>`
+      : '<div class="chosen-photo">🌿</div>';
+    root.innerHTML = `${image}<div><small>VALITUD TAIM</small><b>${esc(state.plant.common)}</b><em>${esc(state.plant.scientific)}</em>${badge}</div>`;
+    root.classList.remove('hidden');
+  }
+  async function loadChosenPlantImage(key){
+    const selectionKey = key;
+    try{
+      const data = await fetchJson(`https://api.gbif.org/v1/occurrence/search?taxon_key=${key}&media_type=StillImage&limit=8`, {}, 3500);
+      const media = (data.results || []).flatMap(item => item.media || []).find(item => item.identifier);
+      if(media?.identifier && state.plant?.key === selectionKey){
+        state.plant.media = media.identifier;
+        renderChosenPlant();
+      }
+    } catch(error){ debug('Valitud taime pilt puudub', error); }
+  }
+  async function loadSuggestions(query, autoPick=false){
+    const alias = aliasFor(query);
+    try{
+      const items = [];
+      const seen = new Set();
+      if(alias){
+        const exact = await gbifMatch(alias).catch(() => null);
+        if(exact){ items.push(exact); seen.add(exact.key); }
+      }
+      const suggestions = await gbifSuggest(alias || query).catch(() => []);
+      for(const item of suggestions){
+        const key = item.key || item.usageKey;
+        if(!key || seen.has(key)) continue;
+        seen.add(key);
+        items.push({key, scientific:item.canonicalName || item.scientificName || query, vernacular:item.vernacularName || ''});
+      }
+      if(autoPick && items[0]){
+        const item = items[0];
+        setChosenPlant({...item, common:DISPLAY[item.scientific] || item.vernacular || query});
+        return;
+      }
+      const root = $('suggest');
+      if(!items.length){ root.innerHTML = '<button type="button" disabled>Ei leidnud vastet.</button>'; root.classList.remove('hidden'); return; }
+      root.innerHTML = items.slice(0,8).map((item, index) => {
+        const common = DISPLAY[item.scientific] || item.vernacular || query;
+        return `<button type="button" data-suggestion="${index}"><b>${esc(common)}</b><small>${esc(item.scientific)}</small></button>`;
+      }).join('');
+      root.classList.remove('hidden');
+      root.querySelectorAll('[data-suggestion]').forEach(button => {
+        button.addEventListener('click', () => {
+          const item = items[Number(button.dataset.suggestion)];
+          setChosenPlant({...item, common:DISPLAY[item.scientific] || item.vernacular || query});
+        });
+      });
+    } catch(error){
+      debug('Taimeotsingu viga', error);
+      $('suggest').innerHTML = '<button type="button" disabled>Taimede otsing ebaõnnestus.</button>';
+      $('suggest').classList.remove('hidden');
+    }
+  }
+  async function resolveTypedPlant(){
+    if(state.plant) return state.plant;
+    const raw = $('plantInput').value.trim();
+    if(!raw) return null;
+    const alias = aliasFor(raw);
+    try{
+      let item = alias ? await gbifMatch(alias).catch(() => null) : null;
+      if(!item){
+        const suggestions = await gbifSuggest(alias || raw);
+        const first = suggestions[0];
+        if(first) item = {key:first.key || first.usageKey, scientific:first.canonicalName || first.scientificName || raw, vernacular:first.vernacularName || ''};
+      }
+      if(!item) return null;
+      setChosenPlant({...item, common:DISPLAY[item.scientific] || item.vernacular || raw});
+      return state.plant;
+    } catch(error){ debug('Kirjutatud taime lahendamine ebaõnnestus', error); return null; }
+  }
+
+  async function nearbyPlants(lat, lon){
+    const url = new URL('https://api.gbif.org/v1/occurrence/search');
+    url.searchParams.set('decimalLatitude', `${lat - .09},${lat + .09}`);
+    url.searchParams.set('decimalLongitude', `${lon - .16},${lon + .16}`);
+    url.searchParams.set('kingdomKey', '6');
+    url.searchParams.set('country', 'EE');
+    url.searchParams.set('hasCoordinate', 'true');
+    url.searchParams.set('limit', '300');
+    const data = await fetchJson(url, {}, 7000);
+    const species = new Map();
+    for(const row of data.results || []){
+      if(!row.speciesKey || !row.species) continue;
+      const current = species.get(row.speciesKey) || {
+        key:row.speciesKey,
+        name:DISPLAY[row.species] || row.vernacularName || row.species,
+        scientific:row.species,
+        count:0,media:'',creator:'',license:''
+      };
+      current.count += 1;
+      const media = (row.media || []).find(item => item.identifier);
+      if(!current.media && media){ current.media = media.identifier; current.creator = media.creator || ''; current.license = media.license || ''; }
+      species.set(row.speciesKey, current);
+    }
+    return [...species.values()].sort((a,b) => b.count - a.count);
+  }
+  async function selectedPlantCount(key, lat, lon){
+    const url = new URL('https://api.gbif.org/v1/occurrence/search');
+    url.searchParams.set('taxon_key', key);
+    url.searchParams.set('decimalLatitude', `${lat - .09},${lat + .09}`);
+    url.searchParams.set('decimalLongitude', `${lon - .16},${lon + .16}`);
+    url.searchParams.set('country', 'EE');
+    url.searchParams.set('hasCoordinate', 'true');
+    url.searchParams.set('limit', '0');
+    const data = await fetchJson(url, {}, 5500);
+    return Number(data.count || 0);
+  }
+  async function photoAI(file, location){
+    if(!file) return 'Fotot ei kasutatud';
+    try{
+      const form = new FormData();
+      form.append('image', file);
+      form.append('latitude', location.lat);
+      form.append('longitude', location.lon);
+      const data = await (await fetchWithTimeout(`${WORKER}/identify`, {method:'POST', body:form}, 6500)).json();
+      const top = data.results?.[0];
+      return top?.species?.commonNames?.[0] || top?.species?.scientificNameWithoutAuthor || top?.species?.scientificName || 'AI analüüs tehtud';
+    } catch(error){ debug('Foto AI polnud saadaval', error); return 'AI polnud saadaval'; }
+  }
+
+  function renderResult(selectedCount, nearby, aiText){
+    const root = $('verdict');
+    const evidence = $('evidenceList');
+    const protection = protectedInfo(state.plant.scientific);
+    const invasive = isInvasive(state.plant.scientific);
+    const best = nearby[0]?.count || 0;
+    const strength = best > 0 && selectedCount != null ? Math.max(0, Math.min(100, Math.round(selectedCount / best * 100))) : 0;
+    let kind = 'bad', title = 'Ei sobi hästi', label = 'NÕRK SOBIVUS', copy = 'Selle taime kohta ei leitud siin piisavalt kohalikku vaatlustõendit. Vaata allpool tugevama kohaliku andmetoega alternatiive.';
+
+    if(invasive){
+      title = 'Ära istuta loodusesse'; label = 'HOIATUS'; copy = 'See liik on BioGlow võõr-/invasiivsete liikide kontrollnimekirjas. Kohalike vaatluste olemasolu ei muuda seda tavaliseks istutussoovituseks.';
+    } else if(protection?.category === 'I' || protection?.category === 'II'){
+      kind = 'maybe'; title = 'Kaitsealune liik'; label = `${protection.category} KAITSEKATEGOORIA`; copy = 'BioGlow ei anna I–II kaitsekategooria liigile tavapärast istutussoovitust ega kuva tundlikku lähileviku infot. Ära võta taimi loodusest.';
+    } else if(strength >= 50){
+      kind = 'good'; title = 'Sobib'; label = 'SOBIB'; copy = `Valitud liigi kohta leiti lähialalt ${selectedCount} avalikku vaatlust. Kohalik levik toetab seda valikut.`;
+    } else if(selectedCount > 0){
+      kind = 'maybe'; title = 'Võib sobida'; label = 'VAJAB KONTROLLI'; copy = `Valitud liigi kohta leiti lähialalt ${selectedCount} vaatlust, kuid teistel liikidel on tugevam kohalik andmetugi.`;
+    }
+
+    const countChip = selectedCount == null ? '<span class="result-chip">lähileviku detail peidetud</span>' : `<span class="result-chip">${selectedCount} vaatlust</span>`;
+    root.className = `verdict-card ${kind}`;
+    root.innerHTML = `
+      <div class="verdict-top"><div class="verdict-icon">${kind === 'good' ? '✓' : kind === 'maybe' ? '?' : '!'}</div><div><small>${esc(label)}</small><h3>${esc(title)}</h3></div></div>
+      <div class="selected-result"><b>${esc(state.plant.common)}</b><span>${esc(state.plant.scientific)}</span></div>
+      <p>${esc(copy)}</p>
+      <div class="result-chips">${countChip}${selectedCount != null ? `<span class="result-chip">kohalik andmetugi ${strength}%</span>` : ''}${protection ? `<span class="result-chip protect">🛡 ${protection.category} kaitsekategooria</span>` : ''}</div>
+      ${protection ? '<div class="safety-note">Kaitsealust taime ei käsitleta tavapärase istutussoovitusena. Ära võta taimi loodusest.</div>' : ''}`;
+
+    const total = nearby.reduce((sum, item) => sum + item.count, 0);
+    evidence.innerHTML = `
+      <div class="evidence-row"><span>⌖</span><div><small>Kohalikud vaatlused</small><b>${selectedCount == null ? 'Tundlik detail peidetud' : `${selectedCount} valitud liigi vaatlust`}</b><p>${total} avalikku taimekirjet ümbruses</p></div></div>
+      <div class="evidence-row"><span>◎</span><div><small>Foto AI</small><b>${esc(aiText)}</b><p>Visuaalne lisakontekst; ei otsusta tulemust üksinda</p></div></div>
+      <div class="evidence-row"><span>🛡</span><div><small>Kaitsestaatus</small><b>${protection ? `${protection.category} kaitsekategooria` : 'Ei tuvastatud'}</b><p>${invasive ? 'Võõr-/invasiivse liigi hoiatus' : 'Kontrollitud'}</p></div></div>`;
+  }
+
+  function renderAlternatives(nearby){
+    const root = $('plants');
+    const unique = [];
+    const seen = new Set();
+    for(const item of nearby){
+      if(item.key === state.plant.key || isInvasive(item.scientific) || protectedInfo(item.scientific)) continue;
+      const simple = generalName(item.scientific, item.name);
+      const key = norm(simple);
+      if(seen.has(key)) continue;
+      seen.add(key);
+      unique.push({...item, simple});
+      if(unique.length === 6) break;
+    }
+    if(!unique.length){
+      root.innerHTML = '<div class="empty-result"><b>Alternatiive ei leitud piisavalt</b><p>Proovi mõnda teist lähedast punkti.</p></div>';
+      return;
+    }
+    root.innerHTML = unique.map((item, index) => `
+      <article class="plant-card">
+        <div id="alt-image-${index}" class="plant-media">${item.media ? `<img src="${esc(item.media)}" alt="${esc(item.simple)}" loading="lazy" referrerpolicy="no-referrer">` : '<div class="plant-placeholder">🌿<small>Pilt laadib…</small></div>'}</div>
+        <div class="plant-body"><span class="plant-rank">${index === 0 ? 'TUGEVAM KANDIDAAT' : `KANDIDAAT ${index + 1}`}</span><h4>${esc(item.simple)}</h4><div class="latin">${esc(item.name !== item.scientific ? `${item.name} · ${item.scientific}` : item.scientific)}</div><div class="plant-evidence"><span>⌖</span><span>Kohalikke vaatlusi <b>${item.count}</b></span></div></div>
+      </article>`).join('');
+    unique.forEach((item, index) => { if(!item.media) loadAlternativeImage(item, index); });
+  }
+
+  async function loadAlternativeImage(item, index){
+    const rootId = `alt-image-${index}`;
+    try{
+      const data = await fetchJson(`https://api.gbif.org/v1/occurrence/search?taxon_key=${item.key}&media_type=StillImage&limit=5`, {}, 3000);
+      const media = (data.results || []).flatMap(row => row.media || []).find(row => row.identifier);
+      const root = $(rootId);
+      if(!root) return;
+      root.innerHTML = media?.identifier
+        ? `<img src="${esc(media.identifier)}" alt="${esc(item.simple)}" loading="lazy" referrerpolicy="no-referrer">`
+        : '<div class="plant-placeholder">🌿<small>Pilt pole saadaval</small></div>';
+    } catch(error){
+      const root = $(rootId);
+      if(root) root.innerHTML = '<div class="plant-placeholder">🌿<small>Pilt pole saadaval</small></div>';
+    }
+  }
+
+  function renderConservation(nearby){
+    const root = $('conservation');
+    const hits = nearby.map(item => ({item, info:protectedInfo(item.scientific)})).filter(row => row.info?.category === 'III');
+    if(!hits.length){
+      root.innerHTML = '<div class="conservation-card"><div class="conservation-symbol">🛡️</div><div><small>LOODUSKAITSE</small><b>III kaitsekategooria taime ei leitud</b><p>Avalikest lähivaatlustest ei leitud sobivat III kategooria liiki. See ei tähenda, et kaitsealuseid liike piirkonnas pole.</p></div></div>';
+      return;
+    }
+    hits.sort((a,b) => a.item.count - b.item.count);
+    const hit = hits[0];
+    root.innerHTML = `<div class="conservation-card"><div class="conservation-symbol">🛡️</div><div><small>LOODUSKAITSE VÕIMALUS</small><b>${esc(hit.info.common || hit.item.name)}</b><span>${esc(hit.item.scientific)} · III kaitsekategooria</span><p>Seda liiki oli avalikus lähiala päringus ${hit.item.count} vaatlust. BioGlow soovitab toetada olemasolevat kasvukohta, mitte võtta taime loodusest.</p></div></div>`;
+  }
+
+  const average = values => {
+    const valid = (values || []).map(Number).filter(Number.isFinite);
+    return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
+  };
+
+  async function environmentElevation(lat, lon){
+    const data = await fetchJson(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`, {}, 4500);
+    const value = Number(data.elevation?.[0]);
+    return Number.isFinite(value) ? {label:`${Math.round(value)} m`, detail:'Copernicus DEM GLO-90'} : null;
+  }
+  async function environmentWeather(lat, lon){
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.searchParams.set('latitude', lat); url.searchParams.set('longitude', lon);
+    url.searchParams.set('hourly', 'soil_moisture_0_to_7cm,shortwave_radiation,cloud_cover');
+    url.searchParams.set('past_days', '7'); url.searchParams.set('forecast_days', '1');
+    const data = await fetchJson(url, {}, 5000);
+    const moisture = average(data.hourly?.soil_moisture_0_to_7cm);
+    const radiation = average((data.hourly?.shortwave_radiation || []).filter(value => Number(value) > 0));
+    const cloud = average(data.hourly?.cloud_cover);
+    return {
+      moisture: moisture == null ? null : {label:moisture < .18 ? 'Pigem kuiv' : moisture < .30 ? 'Keskmine' : 'Pigem niiske', detail:`${moisture.toFixed(2)} m³/m³ · ~7 päeva`},
+      light: radiation == null ? null : {label:radiation < 120 ? 'Vähe valgust' : radiation < 260 ? 'Keskmine' : 'Palju valgust', detail:`${Math.round(radiation)} W/m²${cloud != null ? ` · pilvisus ${Math.round(cloud)}%` : ''}`}
+    };
+  }
+  async function environmentLand(lat, lon){
+    const query = `[out:json][timeout:5];(way(around:120,${lat},${lon})["landuse"];relation(around:120,${lat},${lon})["landuse"];way(around:120,${lat},${lon})["natural"];relation(around:120,${lat},${lon})["natural"];);out tags center 30;`;
+    const data = await fetchJson(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, {}, 5000);
+    const values = (data.elements || []).map(item => item.tags?.natural || item.tags?.landuse).filter(Boolean);
+    const priority = ['wetland','wood','forest','meadow','grass','farmland','heath','scrub','orchard','residential','recreation_ground','cemetery','industrial','commercial'];
+    const value = priority.find(item => values.includes(item)) || values[0];
+    return value ? {label:LAND_LABELS[value] || value.replaceAll('_',' '), detail:'OpenStreetMap · ~120 m ümbrus'} : null;
+  }
+  function soilUrl(property, layer, lat, lon){
+    const d = .01;
+    const params = new URLSearchParams({
+      map:`/map/${property}.map`,SERVICE:'WMS',VERSION:'1.3.0',REQUEST:'GetFeatureInfo',
+      BBOX:`${lat-d},${lon-d},${lat+d},${lon+d}`,CRS:'EPSG:4326',WIDTH:'101',HEIGHT:'101',LAYERS:layer,STYLES:'',
+      FORMAT:'image/tiff',QUERY_LAYERS:layer,INFO_FORMAT:'text/html',I:'50',J:'50',FEATURE_COUNT:'1'
+    });
+    return `https://maps.isric.org/mapserv?${params}`;
+  }
+  async function soilValue(property, layer, lat, lon){
+    const text = await (await fetchWithTimeout(soilUrl(property, layer, lat, lon), {}, 4500)).text();
+    const stripped = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+    const numbers = [...stripped.matchAll(/-?\d+(?:\.\d+)?/g)].map(match => Number(match[0])).filter(Number.isFinite);
+    return numbers.length ? numbers[numbers.length - 1] / 10 : null;
+  }
+  async function environmentSoil(lat, lon){
+    const [ph, clay, sand] = await Promise.all([
+      soilValue('phh2o','phh2o_0-5cm_Q0.5',lat,lon).catch(() => null),
+      soilValue('clay','clay_0-5cm_Q0.5',lat,lon).catch(() => null),
+      soilValue('sand','sand_0-5cm_Q0.5',lat,lon).catch(() => null)
+    ]);
+    if(ph == null && clay == null && sand == null) return null;
+    let label = 'Mulla lõimis';
+    if(clay != null && sand != null) label = clay >= 40 ? 'Savine' : sand >= 70 ? 'Liivane' : clay >= 25 ? 'Saviliiv / liivsavi' : 'Keskmise lõimisega';
+    const parts = [];
+    if(ph != null) parts.push(`pH ${ph.toFixed(1)}`);
+    if(sand != null) parts.push(`liiv ${Math.round(sand)}%`);
+    if(clay != null) parts.push(`savi ${Math.round(clay)}%`);
+    return {label, detail:parts.join(' · ') || 'SoilGrids 250 m mudel'};
+  }
+  function setEnv(id, detailId, data, fallback){
+    $(id).textContent = data?.label || 'Pole saadaval';
+    $(detailId).textContent = data?.detail || fallback;
+  }
+  async function loadEnvironment(lat, lon, analysisId){
+    ['elevationValue','landValue','soilValue','moistureValue','lightValue'].forEach(id => $(id).textContent = '…');
+    const [elevation, weather, land, soil] = await Promise.allSettled([
+      environmentElevation(lat,lon), environmentWeather(lat,lon), environmentLand(lat,lon), environmentSoil(lat,lon)
+    ]);
+    if(analysisId !== state.analysisId) return;
+    setEnv('elevationValue','elevationDetail',elevation.status === 'fulfilled' ? elevation.value : null,'Kõrgusandmeid ei saadud');
+    setEnv('landValue','landDetail',land.status === 'fulfilled' ? land.value : null,'Maastikuandmeid ei saadud');
+    setEnv('soilValue','soilDetail',soil.status === 'fulfilled' ? soil.value : null,'Vaata kaardilt MaRu mullakihti');
+    const weatherValue = weather.status === 'fulfilled' ? weather.value : null;
+    setEnv('moistureValue','moistureDetail',weatherValue?.moisture,'Niiskusandmeid ei saadud');
+    setEnv('lightValue','lightDetail',weatherValue?.light,'Valgusandmeid ei saadud');
+  }
+
+  async function runAnalysis(){
+    const button = $('analyzeBtn');
+    const analysisId = ++state.analysisId;
+    try{
+      if(!await resolveTypedPlant()){
+        setStatus('Ma ei leidnud seda taime. Proovi näiteks „kadakas”.', 'error');
+        return;
+      }
+      if(!state.location){
+        setStatus('Vali asukoht kaardilt, seadmest või GPS-iga fotost.', 'error');
+        scrollToId('map');
+        return;
+      }
+      button.disabled = true;
+      button.textContent = 'Analüüsin…';
+      setStatus('Kogun kohalikke andmeid…');
+      $('resultEmpty').classList.add('hidden');
+      $('resultContent').classList.remove('hidden');
+      $('verdict').className = 'verdict-card';
+      $('verdict').innerHTML = '<div class="selected-result"><b>Analüüsin…</b><span>Kogun andmeid</span></div>';
+      $('plants').innerHTML = '<div class="empty-result"><b>Otsin soovitusi…</b><p>Taimekaardid ilmuvad kohe, pildid võivad laadida hiljem.</p></div>';
+
+      const [nearby, aiText] = await Promise.all([
+        nearbyPlants(state.location.lat, state.location.lon),
+        photoAI(state.file, state.location)
+      ]);
+      if(analysisId !== state.analysisId) return;
+      if(!nearby.length) throw new Error('Selle koha ümbrusest ei leitud piisavalt avalikke taimevaatlusi.');
+
+      const protection = protectedInfo(state.plant.scientific);
+      const sensitive = protection?.category === 'I' || protection?.category === 'II';
+      const selectedCount = sensitive ? null : await selectedPlantCount(state.plant.key, state.location.lat, state.location.lon).catch(() => 0);
+      if(analysisId !== state.analysisId) return;
+
+      renderResult(selectedCount, nearby, aiText);
+      renderAlternatives(nearby);
+      renderConservation(nearby);
+      loadEnvironment(state.location.lat, state.location.lon, analysisId);
+      setStatus('Analüüs valmis.', 'ok');
+      scrollToId('results');
+    } catch(error){
+      console.error('[BioGlow] Analüüs ebaõnnestus', error);
+      setStatus(error.message || 'Analüüs ebaõnnestus. Proovi uuesti.', 'error');
+      $('plants').innerHTML = '<div class="empty-result"><b>Soovitusi ei saanud laadida</b><p>Proovi uuesti või vali teine punkt.</p></div>';
+    } finally {
+      if(analysisId === state.analysisId){
+        button.disabled = false;
+        button.textContent = 'Analüüsi sobivust →';
+      }
+    }
+  }
+
+  function clearPlant(){
+    state.plant = null;
+    $('plantInput').value = '';
+    $('clearPlant').classList.add('hidden');
+    $('suggest').classList.add('hidden');
+    renderChosenPlant();
+  }
+  function reset(){
+    state.analysisId += 1;
+    clearPlant();
+    removePhoto();
+    state.location = null;
+    if(state.map && state.marker){ state.map.removeLayer(state.marker); state.marker = null; }
+    state.map?.setView([58.65,25.1],7);
+    $('coordText').textContent = 'Koordinaadid puuduvad';
+    $('mapBadge').textContent = 'Klõpsa kaardil';
+    $('locationState').innerHTML = '<span class="dot"></span><span>Asukohta pole valitud</span>';
+    $('resultContent').classList.add('hidden');
+    $('resultEmpty').classList.remove('hidden');
+    setStatus('Vali taim ja koht.');
+    scrollToId('analyze');
+  }
+
+  function bindEvents(){
+    document.querySelectorAll('[data-scroll]').forEach(button => button.addEventListener('click', () => scrollToId(button.dataset.scroll)));
+    document.querySelectorAll('[data-quick]').forEach(button => button.addEventListener('click', () => {
+      $('plantInput').value = button.dataset.quick;
+      $('clearPlant').classList.remove('hidden');
+      state.plant = null;
+      renderChosenPlant();
+      loadSuggestions(button.dataset.quick, true);
+    }));
+    $('plantInput').addEventListener('input', event => {
+      clearTimeout(state.searchTimer);
+      state.plant = null;
+      renderChosenPlant();
+      const query = event.target.value.trim();
+      $('clearPlant').classList.toggle('hidden', !query);
+      if(query.length < 2){ $('suggest').classList.add('hidden'); return; }
+      state.searchTimer = setTimeout(() => loadSuggestions(query), 220);
+    });
+    $('clearPlant').addEventListener('click', clearPlant);
+    $('pickFile').addEventListener('click', () => $('files').click());
+    $('files').addEventListener('change', () => readPhoto($('files').files[0]));
+    $('removePhoto').addEventListener('click', removePhoto);
+    $('useLocation').addEventListener('click', useDeviceLocation);
+    $('pickMap').addEventListener('click', () => { toast('Klõpsa kaardil soovitud kohale.'); scrollToId('map'); state.map?.invalidateSize(); });
+    $('analyzeBtn').addEventListener('click', runAnalysis);
+    $('resetBtn').addEventListener('click', reset);
+    $('drop').addEventListener('dragover', event => { event.preventDefault(); $('drop').classList.add('drag'); });
+    $('drop').addEventListener('dragleave', () => $('drop').classList.remove('drag'));
+    $('drop').addEventListener('drop', event => { event.preventDefault(); $('drop').classList.remove('drag'); readPhoto(event.dataTransfer.files[0]); });
+    document.addEventListener('click', event => {
+      if(!$('suggest').contains(event.target) && event.target !== $('plantInput')) $('suggest').classList.add('hidden');
+    });
+  }
+
+  function init(){
+    try{
+      bindEvents();
+      initMap();
+      debug('FINAL versioon käivitus');
+    } catch(error){
+      console.error('[BioGlow] Käivitamise viga', error);
+      setStatus('Lehe käivitamisel tekkis viga. Värskenda lehte.', 'error');
+    }
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
