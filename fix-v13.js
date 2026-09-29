@@ -1,4 +1,4 @@
-// BioGlow V13 — show alternative recommendations with simple general plant names
+// BioGlow V14 — alternative recommendations use simple Estonian general names
 (function(){
   const GENERAL_BY_GENUS={
     Quercus:'tamm',Juniperus:'kadakas',Betula:'kask',Salix:'paju',Pinus:'mänd',Picea:'kuusk',
@@ -12,7 +12,39 @@
     Festuca:'aruhein',Poa:'nurmikas',Rubus:'murakas / vaarikas',Viola:'kannike',Geranium:'kurereha',
     Artemisia:'puju',Hypericum:'naistepuna',Lathyrus:'seahernes',Vicia:'hiirehernes',Lotus:'nõiahammas',
     Thalictrum:'ängelhein',Potentilla:'maran',Dasiphora:'maran',Cornus:'kukits',Euonymus:'kikkapuu',
-    Lycopodium:'kold',Huperzia:'kold',Goodyera:'öövilge',Gymnadenia:'käoraamat',Neottia:'käopõll / pesajuur'
+    Lycopodium:'kold',Huperzia:'kold',Goodyera:'öövilge',Gymnadenia:'käoraamat',Neottia:'käopõll / pesajuur',
+
+    // Common herbaceous plants that appeared in BioGlow recommendations
+    Lamium:'iminõges',Ficaria:'kanakoole',Anemone:'ülane',Bellis:'kirikakar',Chelidonium:'vereurmarohi',
+    Urtica:'nõges',Ranunculus:'tulikas',Taraxacum:'võilill',Plantago:'teeleht',Galium:'madar',
+    Veronica:'mailane',Stellaria:'tähthein',Cerastium:'kadakkaer',Myosotis:'meelespea',Geum:'maajalg',
+    Glechoma:'maajalg',Aegopodium:'naat',Anthriscus:'harakputk',Heracleum:'karuputk',Daucus:'porgand',
+    Rumex:'oblikas',Polygonum:'kirburohi',Persicaria:'kirburohi',Chenopodium:'hanemalts',Atriplex:'malts',
+    Cirsium:'ohakas',Carduus:'ohakas',Sonchus:'piimohakas',Leontodon:'seanupp',Hypochaeris:'seanupp',
+    Crepis:'koeratubakas',Hieracium:'hunditubakas',Pilosella:'karutubakas',Arctium:'takjas',
+    Centaurea:'rukkilill / jumikas',Matricaria:'kummel',Tripleurospermum:'kummel',Achillea:'raudrohi',
+    Tanacetum:'soolikarohi',Artemisia:'puju',Tussilago:'paiseleht',Solidago:'kuldvits',
+    Campanula:'kellukas',Knautia:'äiatar',Scabiosa:'tähtpea',Succisa:'peetrileht',
+    Vicia:'hiirehernes',Lathyrus:'seahernes',Medicago:'lutsern',Melilotus:'mesikas',Lotus:'nõiahammas',
+    Trifolium:'ristik',Astragalus:'hundihammas',Oxytropis:'hundihammas',
+    Epilobium:'pajulill',Chamaenerion:'põdrakanep',Oenothera:'kuningakepp',
+    Filipendula:'angervaks',Alchemilla:'kortsleht',Potentilla:'maran',Geum:'maajalg',Fragaria:'maasikas',
+    Rubus:'murakas / vaarikas',Sanguisorba:'punnpea',Agrimonia:'maarjalepp',
+    Primula:'nurmenukk',Lysimachia:'metstarn',Lythrum:'kukesaba',Mentha:'münt',Thymus:'liivatee',
+    Origanum:'pune',Prunella:'käbihein',Ajuga:'akakapsas',Salvia:'salvei',Stachys:'nõianõges',
+    Lamium:'iminõges',Galeopsis:'kõrvik',Scutellaria:'kilbuk',
+    Viola:'kannike',Geranium:'kurereha',Erodium:'kurereha',Oxalis:'jänesekapsas',
+    Anemone:'ülane',Ranunculus:'tulikas',Caltha:'varsakabi',Ficaria:'kanakoole',
+    Aquilegia:'kurekell',Thalictrum:'ängelhein',Aconitum:'käoking',
+    Convallaria:'maikelluke',Maianthemum:'laanelill',Paris:'ussilakk',Polygonatum:'kuutõverohi',
+    Asarum:'metspipar',Pulmonaria:'kopsurohi',Myosotis:'meelespea',Symphytum:'varemerohi',
+    Digitalis:'sõrmkübar',Linaria:'käokannus',Melampyrum:'härghein',Rhinanthus:'robirohi',
+    Euphrasia:'silmarohi',Pedicularis:'kuuskjalg',Orobanche:'soomukas',
+    Equisetum:'osi',Dryopteris:'sõnajalg',Athyrium:'sõnajalg',Gymnocarpium:'kolmissõnajalg',
+    Pteridium:'kilpjalg',Polypodium:'kiviürt',Asplenium:'raunjalg',
+    Luzula:'piiphein',Eriophorum:'villpea',Eleocharis:'alss',Scirpus:'kõrkjas',Schoenoplectus:'kõrkjas',
+    Typha:'hundinui',Phragmites:'pilliroog',Phalaris:'paelrohi',Deschampsia:'kastik',Agrostis:'kastehein',
+    Dactylis:'kerahein',Phleum:'timut',Alopecurus:'rebasesaba',Bromus:'luste',Elymus:'orashein'
   };
 
   function generalName(scientific,shown){
@@ -20,18 +52,18 @@
     const genus=sci.split(/\s+/)[0];
     if(GENERAL_BY_GENUS[genus]) return GENERAL_BY_GENUS[genus];
 
-    // Fallback for Estonian names already supplied by GBIF/DISPLAY.
     let name=String(shown||'').trim().toLowerCase();
-    const removePrefixes=['harilik ','aru','soo','hall ','sanglepp'];
     if(name.startsWith('harilik ')) name=name.slice(8);
-    // Keep useful simple names when the exact species adjective is unnecessary.
-    const endings=[
+    const exact=[
       ['arukask','kask'],['sookask','kask'],['sanglepp','lepp'],['hall lepp','lepp'],
       ['harilik haab','haab'],['harilik sarapuu','sarapuu'],['harilik toomingas','toomingas'],
       ['harilik vaher','vaher'],['harilik pärn','pärn'],['harilik pihlakas','pihlakas']
-    ];
-    const hit=endings.find(([a])=>name===a);
-    return hit?hit[1]:(name||shown||scientific||'taim');
+    ].find(([a])=>name===a);
+    if(exact) return exact[1];
+
+    // If GBIF only gave us a Latin binomial, use the genus as a clean fallback rather than repeating it twice.
+    if(/^[A-Z][a-z-]+\s+[a-z]/.test(String(shown||''))) return genus || 'taim';
+    return name||shown||scientific||'taim';
   }
 
   function simplifyAlternativeCards(){
@@ -42,18 +74,25 @@
       const title=card.querySelector('h3');
       const latin=card.querySelector('.latin');
       if(!title||!latin) return;
-      const exactTitle=title.textContent.trim();
-      const scientific=latin.textContent.trim();
-      const simple=generalName(scientific,exactTitle);
+
+      const originalTitle=title.dataset.originalTitle||title.textContent.trim();
+      const scientific=latin.dataset.scientific||latin.textContent.trim().split(' · ').pop().trim();
+      title.dataset.originalTitle=originalTitle;
+      latin.dataset.scientific=scientific;
+
+      const simple=generalName(scientific,originalTitle);
       const key=simple.toLowerCase();
       if(seen.has(key)){
         card.style.display='none';
         return;
       }
       seen.add(key);
+      card.style.display='';
       title.textContent=simple;
-      latin.textContent=exactTitle && exactTitle.toLowerCase()!==simple.toLowerCase()
-        ? `${exactTitle} · ${scientific}`
+
+      const originalLooksLatin=/^[A-Z][a-z-]+\s+[a-z]/.test(originalTitle);
+      latin.textContent=(!originalLooksLatin && originalTitle.toLowerCase()!==simple.toLowerCase())
+        ? `${originalTitle} · ${scientific}`
         : scientific;
     });
   }
