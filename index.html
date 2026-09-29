@@ -8,45 +8,30 @@
   <link rel="preconnect" href="https://api.gbif.org">
   <link rel="preconnect" href="https://api.open-meteo.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=10">
-  <link rel="stylesheet" href="fix-v9.css?v=10">
-  <link rel="stylesheet" href="fix-v10.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="fix-v9.css?v=11">
+  <link rel="stylesheet" href="fix-v10.css?v=11">
+  <link rel="stylesheet" href="style-v11.css?v=11">
 </head>
 <body>
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="#top" aria-label="BioGlow avaleht"><span class="brand-mark">✦</span><span>BioGlow</span><span class="version">V10</span></a>
+    <a class="brand" href="#top" aria-label="BioGlow avaleht"><span class="brand-mark">✦</span><span>BioGlow</span><span class="version">V11</span></a>
     <nav class="header-actions"><button class="ghost-btn" onclick="go('results')">Tulemused</button><button class="primary-btn compact" onclick="go('analyze')">Analüüsi kohta</button></nav>
   </div>
 </header>
-
 <main id="top">
 <section class="hero wrap">
-  <div class="hero-copy">
-    <span class="eyebrow">TAIM × KOHT × PÄRIS KESKKONNAANDMED</span>
-    <h1>Kas see taim sobib siia?</h1>
-    <p>Vali taim ja koht. BioGlow ühendab kohalike taimevaatluste, kaitsekategooria, kõrguse, maastikutüübi, mulla ning viimase aja niiskuse ja valguse üheks arusaadavaks analüüsiks.</p>
-    <div class="hero-actions"><button class="primary-btn" onclick="go('analyze')">Alusta analüüsi <span>→</span></button><button class="ghost-btn hero-ghost" onclick="go('how')">Kuidas see töötab?</button></div>
-  </div>
-  <div class="hero-preview">
-    <div class="mini-result"><span class="mini-icon">✓</span><div><small>Sobivus</small><b>Üks selge vastus</b></div></div>
-    <div class="mini-result"><span class="mini-icon blue">◉</span><div><small>Keskkond</small><b>Muld · kõrgus · niiskus · valgus</b></div></div>
-    <div class="mini-result"><span class="mini-icon purple">⌁</span><div><small>Looduskaitse</small><b>Kaitsekategooria + soovitus</b></div></div>
-  </div>
+  <div class="hero-copy"><span class="eyebrow">TAIM × KOHT × PÄRIS KESKKONNAANDMED</span><h1>Kas see taim sobib siia?</h1><p>Vali taim ja koht. BioGlow ühendab kohalike taimevaatluste, kaitsekategooria, kõrguse, maastikutüübi, mulla ning viimase aja niiskuse ja valguse üheks arusaadavaks analüüsiks.</p><div class="hero-actions"><button class="primary-btn" onclick="go('analyze')">Alusta analüüsi <span>→</span></button><button class="ghost-btn hero-ghost" onclick="go('how')">Kuidas see töötab?</button></div></div>
+  <div class="hero-preview"><div class="mini-result"><span class="mini-icon">✓</span><div><small>Sobivus</small><b>Üks selge vastus</b></div></div><div class="mini-result"><span class="mini-icon blue">◉</span><div><small>Keskkond</small><b>Muld · kõrgus · niiskus · valgus</b></div></div><div class="mini-result"><span class="mini-icon purple">⌁</span><div><small>Looduskaitse</small><b>Kaitsekategooria + soovitus</b></div></div></div>
 </section>
-
 <section id="analyze" class="wrap workspace">
   <div class="steps-card">
     <div class="section-head"><div><span class="step-kicker">1 / 2</span><h2>Vali taim</h2></div><span class="section-icon">🌱</span></div>
     <p class="muted">Täpset liiginime ei pea teadma. Kirjuta näiteks „kadakas”, „tamm”, „jugapuu”, „saar” või „nurmenukk”.</p>
-    <div class="search-wrap">
-      <input id="plantInput" class="plant-input" placeholder="Otsi taime nime…" autocomplete="off">
-      <button id="clearPlant" class="input-clear hidden" aria-label="Tühjenda" onclick="clearPlantInput()">×</button>
-      <div id="suggest" class="suggest hidden"></div>
-    </div>
+    <div class="search-wrap"><input id="plantInput" class="plant-input" placeholder="Otsi taime nime…" autocomplete="off"><button id="clearPlant" class="input-clear hidden" aria-label="Tühjenda" onclick="clearPlantInput()">×</button><div id="suggest" class="suggest hidden"></div></div>
     <div class="quick-plants"><button onclick="quickPlant('kadakas')">Kadakas</button><button onclick="quickPlant('tamm')">Tamm</button><button onclick="quickPlant('mänd')">Mänd</button><button onclick="quickPlant('jugapuu')">Jugapuu</button><button onclick="quickPlant('karulauk')">Karulauk</button></div>
     <div id="chosen" class="chosen-plant hidden"></div>
-
     <div class="divider"></div>
     <div class="section-head"><div><span class="step-kicker">2 / 2</span><h2>Vali koht</h2></div><span class="section-icon">📍</span></div>
     <p class="muted">Lisa GPS-iga foto, kasuta seadme asukohta või klõpsa lihtsalt kaardil soovitud kohale.</p>
@@ -54,55 +39,30 @@
     <div id="photoRow" class="photo-row hidden"><img id="preview" alt="Koha foto"><div><b id="photoName"></b><span id="photoMeta"></span></div><button class="icon-btn" onclick="removePhoto()">×</button></div>
     <div class="location-actions"><button class="secondary-btn" onclick="useDeviceLocation()">◎ Kasuta minu asukohta</button><button class="secondary-btn" onclick="enableMapPick()">⌖ Vali kaardilt</button></div>
     <div id="locationState" class="location-state"><span class="dot"></span><span>Asukohta pole veel valitud</span></div>
-    <button id="analyzeBtn" class="primary-btn full" onclick="runCheck()">Analüüsi sobivust</button>
-    <div id="status" class="status-line">Vali taim ja koht.</div>
+    <button id="analyzeBtn" class="primary-btn full" onclick="runCheck()">Analüüsi sobivust</button><div id="status" class="status-line">Vali taim ja koht.</div>
   </div>
-
-  <div class="map-card">
-    <div class="map-head"><div><span class="eyebrow dark">ANALÜÜSITAV KOHT</span><h2>Kaart</h2></div><span id="mapModeBadge" class="map-badge">Klõpsa kaardil</span></div>
-    <div id="map"></div>
-    <div class="map-foot"><span>Klõps kaardil valib kohe analüüsitava punkti</span><span id="coordText">Koordinaadid puuduvad</span></div>
-  </div>
+  <div class="map-card"><div class="map-head"><div><span class="eyebrow dark">ANALÜÜSITAV KOHT</span><h2>Kaart</h2></div><span id="mapModeBadge" class="map-badge">Klõpsa kaardil</span></div><div id="map"></div><div class="map-foot"><span>Klõps kaardil valib kohe analüüsitava punkti</span><span id="coordText">Koordinaadid puuduvad</span></div></div>
 </section>
-
 <section id="results" class="wrap results-section">
   <div class="results-heading"><div><span class="eyebrow dark">TULEMUS</span><h2>BioGlow hinnang</h2></div><button class="secondary-btn" onclick="resetAnalysis()">↻ Uus analüüs</button></div>
   <div id="resultEmpty" class="empty-result"><div>✦</div><b>Tulemus ilmub siia</b><span>Vali taim ja koht ning vajuta „Analüüsi sobivust”.</span></div>
   <div id="resultContent" class="hidden">
-    <div class="result-grid">
-      <div id="verdict" class="verdict-card"></div>
-      <div class="evidence-card"><div class="card-title"><span>◫</span><div><small>MILLE PÕHJAL?</small><b>Analüüsi tõendid</b></div></div><div id="evidenceList" class="evidence-list"></div></div>
-    </div>
-
-    <div class="environment-block">
-      <div class="subsection-head"><div><span class="eyebrow dark">KESKKONNAKIHID</span><h3>Mis selles kohas päriselt toimub?</h3></div><span class="source-pill">5 andmekihti</span></div>
-      <div class="env-grid">
-        <article class="env-card"><span class="env-icon">⛰</span><small>Kõrgus</small><b id="elevationValue">–</b><p id="elevationDetail">Copernicus DEM</p></article>
-        <article class="env-card"><span class="env-icon">◈</span><small>Maastik</small><b id="landValue">–</b><p id="landDetail">Maakatte tüüp</p></article>
-        <article class="env-card"><span class="env-icon">◌</span><small>Muld</small><b id="soilValue">–</b><p id="soilDetail">pH ja lõimis</p></article>
-        <article class="env-card"><span class="env-icon">≈</span><small>Niiskus</small><b id="moistureValue">–</b><p id="moistureDetail">Mulla niiskuse mudel</p></article>
-        <article class="env-card"><span class="env-icon">☀</span><small>Valgus</small><b id="lightValue">–</b><p id="lightDetail">Päikesekiirgus + pilvisus</p></article>
-      </div>
-      <div class="environment-note">Maa- ja Ruumiameti ametlik mullakaart ning maakatte kihid on kaardil eraldi sisse-välja lülitatavad. SoilGridsi numbrilised mullaomadused on 250 m mudel, mitte laboriproov.</div>
-    </div>
-
+    <div class="result-grid"><div id="verdict" class="verdict-card"></div><div class="evidence-card"><div class="card-title"><span>◫</span><div><small>MILLE PÕHJAL?</small><b>Analüüsi tõendid</b></div></div><div id="evidenceList" class="evidence-list"></div></div></div>
+    <div class="environment-block"><div class="subsection-head"><div><span class="eyebrow dark">KESKKONNAKIHID</span><h3>Mis selles kohas päriselt toimub?</h3></div><span class="source-pill">5 andmekihti</span></div><div class="env-grid"><article class="env-card"><span class="env-icon">⛰</span><small>Kõrgus</small><b id="elevationValue">–</b><p id="elevationDetail">Copernicus DEM</p></article><article class="env-card"><span class="env-icon">◈</span><small>Maastik</small><b id="landValue">–</b><p id="landDetail">Maakatte tüüp</p></article><article class="env-card"><span class="env-icon">◌</span><small>Muld</small><b id="soilValue">–</b><p id="soilDetail">pH ja lõimis</p></article><article class="env-card"><span class="env-icon">≈</span><small>Niiskus</small><b id="moistureValue">–</b><p id="moistureDetail">Mulla niiskuse mudel</p></article><article class="env-card"><span class="env-icon">☀</span><small>Valgus</small><b id="lightValue">–</b><p id="lightDetail">Päikesekiirgus + pilvisus</p></article></div><div class="environment-note">Maa- ja Ruumiameti ametlik mullakaart ning maakatte kihid on kaardil eraldi sisse-välja lülitatavad. SoilGridsi numbrilised mullaomadused on 250 m mudel, mitte laboriproov.</div></div>
     <div id="conservation"></div>
-    <div class="alternatives-block"><div class="subsection-head"><div><span class="eyebrow dark">ALTERNATIIVID</span><h3>Kui sinu valik pole parim</h3></div><span class="source-pill">Pildid laevad taustal</span></div><div id="plants" class="plants"></div></div>
+    <div class="alternatives-block"><div class="subsection-head"><div><span class="eyebrow dark">ALTERNATIIVID</span><h3>Kui sinu valik pole parim</h3></div><span class="source-pill">GBIF pildid</span></div><div id="plants" class="plants"></div></div>
   </div>
 </section>
-
-<section id="how" class="wrap how-section">
-  <div><span class="eyebrow dark">KUIDAS BIOGLOW OTSUSTAB?</span><h2>Rohkem kui lihtsalt „seda taime on siin nähtud”</h2></div>
-  <div class="how-grid"><div><span>01</span><b>Liik</b><p>Leiame sinu eestikeelse otsingu põhjal täpse liigi ja kontrollime kaitse-/invasiivsuse staatust.</p></div><div><span>02</span><b>Koht</b><p>GPS tuleb fotost, seadmest või sinu valitud kaardipunktist.</p></div><div><span>03</span><b>Keskkond</b><p>Lisame kõrguse, maastiku, mulla ning viimase aja niiskuse ja valguse.</p></div><div><span>04</span><b>Kohalik tõend</b><p>GBIF-i vaatlused näitavad, kas liik on piirkonnas päriselt esinenud.</p></div></div>
-</section>
+<section id="how" class="wrap how-section"><div><span class="eyebrow dark">KUIDAS BIOGLOW OTSUSTAB?</span><h2>Rohkem kui lihtsalt „seda taime on siin nähtud”</h2></div><div class="how-grid"><div><span>01</span><b>Liik</b><p>Leiame sinu eestikeelse otsingu põhjal täpse liigi ja kontrollime kaitse-/invasiivsuse staatust.</p></div><div><span>02</span><b>Koht</b><p>GPS tuleb fotost, seadmest või sinu valitud kaardipunktist.</p></div><div><span>03</span><b>Keskkond</b><p>Lisame kõrguse, maastiku, mulla ning viimase aja niiskuse ja valguse.</p></div><div><span>04</span><b>Kohalik tõend</b><p>GBIF-i vaatlused näitavad, kas liik on piirkonnas päriselt esinenud.</p></div></div></section>
 </main>
 <div id="toast" class="toast hidden"></div>
 <script src="https://unpkg.com/exifr/dist/lite.umd.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="plant-data.js?v=10"></script>
-<script src="app.js?v=10"></script>
-<script src="fix-v9.js?v=10"></script>
-<script src="fix-v10.js?v=10"></script>
-<script src="environment.js?v=10"></script>
+<script src="plant-data.js?v=11"></script>
+<script src="app.js?v=11"></script>
+<script src="fix-v9.js?v=11"></script>
+<script src="fix-v10.js?v=11"></script>
+<script src="fix-v11.js?v=11"></script>
+<script src="environment.js?v=11"></script>
 </body>
 </html>
