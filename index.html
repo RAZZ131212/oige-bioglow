@@ -8,12 +8,13 @@
   <link rel="preconnect" href="https://api.gbif.org">
   <link rel="preconnect" href="https://api.open-meteo.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="fix-v9.css?v=9">
 </head>
 <body>
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="#top" aria-label="BioGlow avaleht"><span class="brand-mark">✦</span><span>BioGlow</span><span class="version">V8</span></a>
+    <a class="brand" href="#top" aria-label="BioGlow avaleht"><span class="brand-mark">✦</span><span>BioGlow</span><span class="version">V9</span></a>
     <nav class="header-actions"><button class="ghost-btn" onclick="go('results')">Tulemused</button><button class="primary-btn compact" onclick="go('analyze')">Analüüsi kohta</button></nav>
   </div>
 </header>
@@ -47,7 +48,7 @@
 
     <div class="divider"></div>
     <div class="section-head"><div><span class="step-kicker">2 / 2</span><h2>Vali koht</h2></div><span class="section-icon">📍</span></div>
-    <p class="muted">Lisa GPS-iga foto, kasuta seadme asukohta või vali punkt kaardilt.</p>
+    <p class="muted">Lisa GPS-iga foto, kasuta seadme asukohta või klõpsa lihtsalt kaardil soovitud kohale.</p>
     <div id="drop" class="drop-zone"><input id="files" type="file" accept="image/jpeg,image/jpg" hidden><div class="drop-icon">↥</div><div><b>Lisa koha foto</b><span>JPG/JPEG · GPS loetakse automaatselt</span></div><button class="secondary-btn" onclick="document.getElementById('files').click()">Vali foto</button></div>
     <div id="photoRow" class="photo-row hidden"><img id="preview" alt="Koha foto"><div><b id="photoName"></b><span id="photoMeta"></span></div><button class="icon-btn" onclick="removePhoto()">×</button></div>
     <div class="location-actions"><button class="secondary-btn" onclick="useDeviceLocation()">◎ Kasuta minu asukohta</button><button class="secondary-btn" onclick="enableMapPick()">⌖ Vali kaardilt</button></div>
@@ -57,9 +58,9 @@
   </div>
 
   <div class="map-card">
-    <div class="map-head"><div><span class="eyebrow dark">ANALÜÜSITAV KOHT</span><h2>Kaart</h2></div><span id="mapModeBadge" class="map-badge">GPS / kaart</span></div>
+    <div class="map-head"><div><span class="eyebrow dark">ANALÜÜSITAV KOHT</span><h2>Kaart</h2></div><span id="mapModeBadge" class="map-badge">Klõpsa kaardil</span></div>
     <div id="map"></div>
-    <div class="map-foot"><span>Kaardikihid ↗ paremas ülanurgas</span><span id="coordText">Koordinaadid puuduvad</span></div>
+    <div class="map-foot"><span>Klõps kaardil valib kohe analüüsitava punkti</span><span id="coordText">Koordinaadid puuduvad</span></div>
   </div>
 </section>
 
@@ -97,7 +98,9 @@
 <div id="toast" class="toast hidden"></div>
 <script src="https://unpkg.com/exifr/dist/lite.umd.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="plant-data.js?v=8"></script>
-<script src="app.js?v=8"></script>
-<script src="environment.js?v=8"></script>
-</body></html>
+<script src="plant-data.js?v=9"></script>
+<script src="app.js?v=9"></script>
+<script src="fix-v9.js?v=9"></script>
+<script src="environment.js?v=9"></script>
+</body>
+</html>
