@@ -1,7 +1,163 @@
-<!doctype html><html lang="et"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BioGlow — Taim + koht + looduskaitse</title><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><link rel="stylesheet" href="style.css?v=6"></head><body>
-<header><div class="w top"><div class="brand"><span class="logo">🌿</span>BioGlow <span class="version">V6</span></div><div><button class="btn" onclick="go('results')">Tulemused</button> <button class="btn primary" onclick="go('scan')">Kontrolli taime</button></div></div></header>
-<main class="w"><section class="hero"><div><div class="eyebrow">TAIM × KOHT × LOODUSKAITSE</div><h1>Vali taim. BioGlow kontrollib kohta.</h1><p>Kirjuta ka lihtsalt <b>„kadakas“</b>, <b>„tamm“</b>, <b>„jugapuu“</b> või <b>„karulauk“</b>. BioGlow leiab liigi, kontrollib asukohta, näitab kohe Eesti kaitsekategooriat ja pakub vajadusel tavalisemaid sobivaid alternatiive koos piltidega.</p></div><div class="heroSide"><b>Alati kolm vastust</b><p>1. Kas sinu valitud taim sobib?<br><br>2. Kas valitud taim on I, II või III kaitsekategoorias?<br><br>3. Kas piirkonnas on III kaitsekategooria taim, mille kasvukohta tasuks toetada?</p></div></section>
-<section id="scan" class="grid"><div class="card"><h2>1. Vali taim</h2><p class="muted">Täpset liiginime ei pea teadma. Proovi näiteks „kadakas“, „tamm“, „jugapuu“, „karulauk“ või ladinakeelset nime.</p><label class="label">Taime nimi</label><input id="plantInput" class="field" placeholder="nt kadakas" autocomplete="off"><div id="suggest" class="suggest hidden"></div><div id="chosen" class="chosen hidden"></div><h2 class="sectionGap">2. Lisa koha foto</h2><div id="drop" class="drop"><div class="camera">📷</div><b>Lohista JPG/JPEG foto siia</b><br><label class="pick">Vali foto<input id="files" type="file" accept="image/jpeg,image/jpg"></label></div><img id="preview" class="preview"><div id="status" class="status">Vali taim ja lisa GPS-iga foto.</div><div class="actions"><button class="btn primary" onclick="runCheck()">Analüüsi sobivust</button></div></div>
-<div class="card"><h2>Koha analüüs</h2><p class="muted">Kasutame foto GPS-i, BioGlow AI-d ja GBIF-i avalikke taimevaatlusi. I ja II kaitsekategooria tundlikke täpseid kasvukohti siin ei avaldata.</p><div id="facts" class="facts"><div class="fact"><small>GPS</small><b>–</b></div><div class="fact"><small>Foto AI</small><b>–</b></div><div class="fact"><small>Vaatlusi</small><b>–</b></div></div><div id="map"></div><div class="notice">„Sobib“ on prototüübi hinnang, mitte ametlik istutusluba. Enne päris istutamist kontrolli mulda, niiskust, valgust, taime päritolu ja looduskaitse nõudeid.</div></div></section>
-<section id="results" class="card results"><h2>3. Tulemus</h2><div id="verdict" class="muted">Tulemus ilmub pärast analüüsi.</div><div id="conservation"><div class="conserve"><b>🛡️ Looduskaitse soovitus</b><div class="muted conservationIntro">Analüüsi järel otsin ümbrusest avaliku III kaitsekategooria taime.</div></div></div><h2 class="sectionGap">Sobivamad alternatiivid</h2><div id="plants" class="plants"><div class="muted">Kui sinu valik pole hea, ilmuvad siia mitte-kaitsealused ja mitte-invasiivsed alternatiivid koos piltidega.</div></div></section></main>
-<script src="https://unpkg.com/exifr/dist/lite.umd.js"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="plant-data.js?v=6"></script><script src="app.js?v=6"></script></body></html>
+<!doctype html>
+<html lang="et">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b2a1b">
+  <title>BioGlow — Plant Match</title>
+  <link rel="preconnect" href="https://api.gbif.org">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" aria-label="BioGlow avaleht">
+      <span class="brand-mark">✦</span>
+      <span>BioGlow</span>
+      <span class="version">V7</span>
+    </a>
+    <nav class="header-actions">
+      <button class="ghost-btn" onclick="go('how')">Kuidas töötab?</button>
+      <button class="primary-btn small" onclick="go('analyze')">Kontrolli taime</button>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero wrap">
+    <div class="hero-copy">
+      <div class="eyebrow"><span></span>TAIM × KOHT × LOODUSKAITSE</div>
+      <h1>Kas sinu taim<br><em>sobib siia?</em></h1>
+      <p>Vali taim, lisa kohast foto või asukoht ja BioGlow võrdleb valikut kohalike taimevaatluste, kaitsekategooria ning pildiinfoga.</p>
+      <div class="hero-actions">
+        <button class="primary-btn" onclick="go('analyze')">Alusta analüüsi <span>→</span></button>
+        <button class="text-btn" onclick="quickPlant('kadakas')">Proovi näidet: kadakas</button>
+      </div>
+      <div class="source-row" aria-label="Andmeallikad">
+        <span>Andmed</span>
+        <span class="source-pill">GBIF</span>
+        <span class="source-pill">BioGlow AI</span>
+        <span class="source-pill">Eesti kaitsekategooriad</span>
+      </div>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <div class="visual-orb orb-one"></div><div class="visual-orb orb-two"></div>
+      <div class="hero-demo-card">
+        <div class="demo-icon">🌿</div>
+        <small>VALITUD TAIM</small>
+        <b>harilik kadakas</b>
+        <i>Juniperus communis</i>
+        <div class="demo-divider"></div>
+        <div class="demo-result"><span class="dot ok-dot"></span><b>Kohalik andmetugi</b><strong>hea</strong></div>
+        <div class="demo-result"><span class="dot neutral-dot"></span><b>Kaitsekategooria</b><strong>puudub</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="analyze" class="workspace wrap">
+    <div class="workspace-head">
+      <div><span class="step-label">ANALÜÜS</span><h2>Kolm lihtsat sammu</h2></div>
+      <p>Taime täpset ladinakeelset nime ei pea teadma.</p>
+    </div>
+
+    <div class="workflow-grid">
+      <section class="panel input-panel">
+        <div class="step-head"><span class="step-number">1</span><div><b>Vali taim</b><small>Kirjuta lihtsalt nimi, nt „kadakas”.</small></div></div>
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input id="plantInput" class="plant-input" placeholder="Otsi taime…" autocomplete="off" aria-label="Taime otsing">
+          <button id="clearPlant" class="clear-input hidden" type="button" aria-label="Tühjenda">×</button>
+        </div>
+        <div id="suggest" class="suggest hidden"></div>
+        <div class="quick-chips">
+          <button onclick="quickPlant('kadakas')">kadakas</button><button onclick="quickPlant('tamm')">tamm</button><button onclick="quickPlant('mänd')">mänd</button><button onclick="quickPlant('karulauk')">karulauk</button><button onclick="quickPlant('jugapuu')">jugapuu</button>
+        </div>
+        <div id="chosen" class="selected-plant hidden"></div>
+
+        <div class="step-head section-space"><span class="step-number">2</span><div><b>Lisa koht</b><small>Foto GPS on parim, aga saad valida ka käsitsi.</small></div></div>
+        <div id="drop" class="drop-zone">
+          <input id="files" type="file" accept="image/jpeg,image/jpg" hidden>
+          <div class="drop-icon">↥</div>
+          <b>Lisa koha foto</b>
+          <span>JPG / JPEG · foto GPS loetakse automaatselt</span>
+          <button class="secondary-btn" type="button" onclick="document.getElementById('files').click()">Vali foto</button>
+        </div>
+        <div id="photoPreviewWrap" class="photo-preview hidden">
+          <img id="preview" alt="Koha foto eelvaade">
+          <button class="image-remove" onclick="removePhoto()" aria-label="Eemalda foto">×</button>
+          <div id="photoMeta"></div>
+        </div>
+
+        <div class="location-tools">
+          <button class="tool-btn" onclick="useBrowserLocation()"><span>◎</span> Kasuta minu asukohta</button>
+          <button class="tool-btn" onclick="enableMapPick()"><span>⌖</span> Vali punkt kaardilt</button>
+        </div>
+        <div id="locationState" class="location-state">Asukohta pole veel valitud.</div>
+
+        <div class="step-head section-space"><span class="step-number">3</span><div><b>Analüüsi</b><small>Saad ühe selge otsuse koos põhjendustega.</small></div></div>
+        <button id="analyzeBtn" class="primary-btn full" onclick="runCheck()">Analüüsi sobivust <span>→</span></button>
+        <div id="status" class="status-line">Vali taim ja koht.</div>
+      </section>
+
+      <section class="panel map-panel">
+        <div class="panel-title-row"><div><span class="step-label">KOHT</span><h3>Analüüsitav ala</h3></div><span id="mapModeBadge" class="map-mode">GPS / kaart</span></div>
+        <div id="map"></div>
+        <div class="map-footer">
+          <div><small>KOORDINAADID</small><b id="coordsText">–</b></div>
+          <div><small>ASUKOHA ALLIKAS</small><b id="locationSource">–</b></div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section id="results" class="results-section wrap">
+    <div class="section-head"><div><span class="step-label">TULEMUS</span><h2>BioGlow hinnang</h2></div><button class="ghost-btn" onclick="resetAnalysis()">Uus analüüs</button></div>
+
+    <div id="emptyResult" class="empty-result">
+      <div class="empty-icon">✦</div><b>Tulemus ilmub siia</b><p>Vali taim ja koht ning käivita analüüs.</p>
+    </div>
+
+    <div id="resultContent" class="hidden">
+      <div class="result-grid">
+        <article id="verdict" class="verdict-card"></article>
+        <article class="evidence-card">
+          <span class="step-label">TÕENDID</span>
+          <h3>Mille põhjal?</h3>
+          <div class="evidence-list">
+            <div><span class="evidence-icon">⌖</span><div><small>LÄHIALA VAATLUSED</small><b id="obsEvidence">–</b></div></div>
+            <div><span class="evidence-icon">◫</span><div><small>FOTO AI</small><b id="aiEvidence">–</b></div></div>
+            <div><span class="evidence-icon">🛡</span><div><small>KAITSESTAATUS</small><b id="protectionEvidence">–</b></div></div>
+          </div>
+          <div class="confidence-block"><div><span>Kohaliku andmetoe tugevus</span><b id="confidenceLabel">–</b></div><div class="confidence-track"><span id="confidenceBar"></span></div><small>See ei ole taime ellujäämise tõenäosus, vaid kohalike vaatlusandmete tugevus.</small></div>
+        </article>
+      </div>
+
+      <div id="conservation"></div>
+
+      <div class="alternatives-head"><div><span class="step-label">ALTERNATIIVID</span><h2>Selle koha tugevamad kandidaadid</h2></div><p>Kaitsealused ja invasiivsed liigid on tavalisest istutussoovituste nimekirjast välja jäetud.</p></div>
+      <div id="plants" class="plants"></div>
+    </div>
+  </section>
+
+  <section id="how" class="how-section wrap">
+    <div class="how-copy"><span class="step-label">KUIDAS SEE TÖÖTAB?</span><h2>BioGlow ei tee lihtsalt üht AI-arvamust.</h2><p>Rakendus ühendab mitu eri signaali, et anda arusaadavam eelhinnang.</p></div>
+    <div class="how-grid">
+      <article><span>01</span><b>Taime valik</b><p>Lihtne eestikeelne nimi seotakse võimalusel täpse liigiga.</p></article>
+      <article><span>02</span><b>Koha andmed</b><p>Foto GPS, sinu brauseri asukoht või käsitsi valitud punkt.</p></article>
+      <article><span>03</span><b>Kohalik levik</b><p>GBIF-i avalikud vaatlused näitavad, milliseid taimi ümbruses päriselt leidub.</p></article>
+      <article><span>04</span><b>Looduskaitse</b><p>I–III kaitsekategooria ja invasiivsete liikide kontroll muudab soovituse turvalisemaks.</p></article>
+    </div>
+    <div class="method-note"><b>Oluline:</b> BioGlow on FLL-i prototüüp ja eelhinnang. Päris istutusotsuse jaoks tuleks hiljem ühendada veel mullastik, niiskus, valgus ja täpsem kasvukohatüüp.</div>
+  </section>
+</main>
+
+<footer><div class="wrap footer-inner"><div><b>BioGlow</b><span>FLL Innovation Project</span></div><div>GBIF · OpenStreetMap · BioGlow AI</div></div></footer>
+
+<div id="toast" class="toast hidden"></div>
+<script src="https://unpkg.com/exifr/dist/lite.umd.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="plant-data.js?v=7"></script>
+<script src="app.js?v=7"></script>
+</body>
+</html>
