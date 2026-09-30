@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://api.open-meteo.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css?v=16">
+  <link rel="stylesheet" href="auth.css?v=1">
 </head>
 <body>
 <header class="topbar">
@@ -18,6 +19,18 @@
     <nav class="nav-actions" aria-label="Põhinavigatsioon">
       <button class="btn ghost" data-scroll="results">Tulemused</button>
       <button class="btn primary compact" data-scroll="analyze">Analüüsi</button>
+      <div id="accountWrap" class="account-wrap">
+        <button id="accountButton" class="btn ghost account-btn" type="button" aria-label="Konto">
+          <span class="account-avatar">👤</span><span>Konto</span>
+        </button>
+        <div id="accountMenu" class="account-menu hidden">
+          <div class="account-menu-head">
+            <div class="big-avatar">✦</div>
+            <div class="account-menu-copy"><b id="accountName">Kasutaja</b><span id="accountEmail"></span></div>
+          </div>
+          <button id="logoutButton" class="btn secondary" type="button">Logi välja</button>
+        </div>
+      </div>
     </nav>
   </div>
 </header>
@@ -138,10 +151,42 @@
   </section>
 </main>
 
+<div id="authModal" class="auth-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <div class="auth-card">
+    <button id="authClose" class="auth-close" type="button" aria-label="Sulge">×</button>
+    <span class="eyebrow">BIOGLOW KONTO</span>
+    <h2 id="authTitle">Sinu BioGlow</h2>
+    <p>Logi sisse või loo konto. Konto töötab Supabase'i kaudu.</p>
+
+    <div class="auth-tabs">
+      <button id="loginTab" class="auth-tab active" type="button">Logi sisse</button>
+      <button id="signupTab" class="auth-tab" type="button">Loo konto</button>
+    </div>
+
+    <form id="authLoginForm" class="auth-form">
+      <label>E-post<input id="loginEmail" type="email" autocomplete="email" placeholder="nimi@example.com" required></label>
+      <label>Parool<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sinu parool" required></label>
+      <button id="loginSubmit" class="btn primary full" type="submit">Logi sisse</button>
+    </form>
+
+    <form id="authSignupForm" class="auth-form hidden">
+      <label>Nimi<input id="signupName" type="text" autocomplete="name" placeholder="Sinu nimi" maxlength="50" required></label>
+      <label>E-post<input id="signupEmail" type="email" autocomplete="email" placeholder="nimi@example.com" required></label>
+      <label>Parool<input id="signupPassword" type="password" autocomplete="new-password" placeholder="Vähemalt 6 märki" minlength="6" required></label>
+      <button id="signupSubmit" class="btn primary full" type="submit">Loo konto</button>
+    </form>
+
+    <div id="authMessage" class="auth-message" aria-live="polite"></div>
+    <div class="auth-note">Sisselogimisandmeid haldab Supabase Auth. BioGlow ei salvesta sinu parooli veebilehe koodi.</div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden" role="status"></div>
 <script src="https://unpkg.com/exifr/dist/lite.umd.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="plant-data.js?v=16"></script>
 <script src="app.js?v=16"></script>
+<script src="auth.js?v=1"></script>
 </body>
 </html>
