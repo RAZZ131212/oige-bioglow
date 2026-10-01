@@ -2,9 +2,19 @@
   "name":"BioGlow",
   "short_name":"BioGlow",
   "start_url":"./",
+  "scope":"./",
   "display":"standalone",
+  "orientation":"any",
   "background_color":"#f7faf8",
   "theme_color":"#0b2b1d",
   "lang":"et",
-  "description":"BioGlow taimede ja kasvukoha sobivuse analüüs"
+  "description":"BioGlow taimede ja kasvukoha sobivuse analüüs",
+  "categories":["education","utilities"],
+  "icons":[
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ],
+  "shortcuts":[
+    {"name":"Analüüsi taime","short_name":"Analüüsi","url":"./#analyze"},
+    {"name":"Tulemused","short_name":"Tulemused","url":"./#results"}
+  ]
 }
