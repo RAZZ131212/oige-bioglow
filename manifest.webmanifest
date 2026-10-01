@@ -1,0 +1,10 @@
+{
+  "name":"BioGlow",
+  "short_name":"BioGlow",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#f7faf8",
+  "theme_color":"#0b2b1d",
+  "lang":"et",
+  "description":"BioGlow taimede ja kasvukoha sobivuse analüüs"
+}
