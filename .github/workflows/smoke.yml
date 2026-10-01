@@ -1,0 +1,24 @@
+name: BioGlow smoke tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check auth.js
+          node --check features.js
+          node --check i18n.js
+          node --check lab.js
+      - name: Run smoke tests
+        run: node tests/smoke.mjs
