@@ -15,7 +15,21 @@ const SIMPLE_NAMES={
   "karulauk":"Allium ursinum","künnapuu":"Ulmus laevis",
   "jugapuu":"Taxus baccata","harilik jugapuu":"Taxus baccata",
   "kuldking":"Cypripedium calceolus","kaunis kuldking":"Cypripedium calceolus",
-  "palu-karukell":"Pulsatilla patens","aas-karukell":"Pulsatilla pratensis"
+  "palu-karukell":"Pulsatilla patens","aas-karukell":"Pulsatilla pratensis",
+
+  // Levinud aia- ja ilutaimede eestikeelsed nimed
+  "pojeng":"Paeonia","harilik pojeng":"Paeonia officinalis","hiina pojeng":"Paeonia lactiflora",
+  "elupuu":"Thuja","harilik elupuu":"Thuja occidentalis","lääne-elupuu":"Thuja occidentalis",
+  "tulp":"Tulipa","nartsiss":"Narcissus","liilia":"Lilium","iiris":"Iris",
+  "roos":"Rosa","aedroos":"Rosa","hortensia":"Hydrangea","aedhortensia":"Hydrangea macrophylla",
+  "petuunia":"Petunia","begoonia":"Begonia","daalia":"Dahlia","aster":"Aster",
+  "krüsanteem":"Chrysanthemum","lavendel":"Lavandula angustifolia","salvei":"Salvia",
+  "hosta":"Hosta","floks":"Phlox","gladiool":"Gladiolus","võõrasema":"Viola tricolor",
+  "päevalill":"Helianthus annuus","saialill":"Calendula officinalis","rukkilill":"Centaurea cyanus",
+  "moon":"Papaver","aedmoon":"Papaver somniferum","lumikelluke":"Galanthus nivalis",
+  "maikelluke":"Convallaria majalis","sirel":"Syringa vulgaris","jasmiin":"Jasminum",
+  "ebajasmiin":"Philadelphus coronarius","rododendron":"Rhododendron",
+  "elulõng":"Clematis","kuslapuu":"Lonicera","pukspuu":"Buxus sempervirens"
 };
 
 const DISPLAY={
@@ -26,7 +40,16 @@ const DISPLAY={
   "Corylus avellana":"harilik sarapuu","Prunus padus":"harilik toomingas","Calluna vulgaris":"kanarbik",
   "Vaccinium myrtillus":"mustikas","Vaccinium vitis-idaea":"pohl","Allium ursinum":"karulauk",
   "Ulmus laevis":"künnapuu","Taxus baccata":"harilik jugapuu","Cypripedium calceolus":"kaunis kuldking",
-  "Pulsatilla patens":"palu-karukell","Pulsatilla pratensis":"aas-karukell"
+  "Pulsatilla patens":"palu-karukell","Pulsatilla pratensis":"aas-karukell",
+  "Paeonia":"pojeng","Paeonia officinalis":"harilik pojeng","Paeonia lactiflora":"hiina pojeng",
+  "Thuja":"elupuu","Thuja occidentalis":"harilik elupuu",
+  "Tulipa":"tulp","Narcissus":"nartsiss","Lilium":"liilia","Hydrangea":"hortensia",
+  "Hydrangea macrophylla":"aedhortensia","Petunia":"petuunia","Begonia":"begoonia",
+  "Dahlia":"daalia","Chrysanthemum":"krüsanteem","Lavandula angustifolia":"lavendel",
+  "Hosta":"hosta","Phlox":"floks","Gladiolus":"gladiool","Helianthus annuus":"päevalill",
+  "Calendula officinalis":"saialill","Centaurea cyanus":"rukkilill","Galanthus nivalis":"lumikelluke",
+  "Convallaria majalis":"maikelluke","Syringa vulgaris":"sirel","Philadelphus coronarius":"ebajasmiin",
+  "Buxus sempervirens":"pukspuu"
 };
 
 const INVASIVE=[
