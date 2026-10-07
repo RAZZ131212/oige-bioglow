@@ -154,12 +154,104 @@
     } catch(error){ debug('MaRu kihid ei laadinud', error); }
   }
 
+  const addressSearch = {id:0, controller:null, cache:new Map()};
+  const addressText = key => window.BioGlowI18n?.t('address.' + key) || ({
+    short:'Sisesta vähemalt 3 märki.', loading:'Otsin aadressi…',
+    empty:'Aadressi ei leitud. Lisa linn või vald või vali koht kaardilt.',
+    results:'Vali allpool õige aadress.',
+    selected:'Aadress valitud. Täpsusta istutuskoht kaardil, näiteks aias või peenras.',
+    error:'Aadressiotsing ei vasta. Proovi uuesti või vali koht kaardilt.'
+  })[key];
+
+  function cancelAddressSearch(clearInput = false){
+    addressSearch.id++;
+    addressSearch.controller?.abort();
+    addressSearch.controller = null;
+    $('addressSearchBtn').disabled = false;
+    $('addressForm').removeAttribute('aria-busy');
+    $('addressResults').replaceChildren();
+    $('addressResults').classList.add('hidden');
+    $('addressStatus').textContent = '';
+    if(clearInput) $('addressInput').value = '';
+  }
+
+  async function searchAddress(event){
+    event.preventDefault();
+    cancelAddressSearch();
+    const query = $('addressInput').value.trim();
+    if(query.length < 3){
+      $('addressStatus').textContent = addressText('short');
+      return;
+    }
+    const id = addressSearch.id;
+    const controller = new AbortController();
+    addressSearch.controller = controller;
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    $('addressSearchBtn').disabled = true;
+    $('addressForm').setAttribute('aria-busy', 'true');
+    $('addressStatus').textContent = addressText('loading');
+    try{
+      const key = norm(query);
+      let rows = addressSearch.cache.get(key);
+      if(!rows){
+        const url = new URL('https://aks.geoportaal.ee/inaks/inaadress/gazetteer');
+        url.searchParams.set('address', query);
+        url.searchParams.set('results', '8');
+        const response = await fetch(url, {signal:controller.signal});
+        if(!response.ok) throw new Error('Address search HTTP ' + response.status);
+        const data = await response.json();
+        if(!Array.isArray(data.addresses)) throw new Error('Invalid address response');
+        const seen = new Set();
+        rows = data.addresses.map(row => ({
+          label:row.ipikkaadress || row.pikkaadress || row.taisaadress,
+          lat:parseFloat(row.viitepunkt_b), lon:parseFloat(row.viitepunkt_l)
+        })).filter(row => {
+          if(!row.label || !Number.isFinite(row.lat) || !Number.isFinite(row.lon) ||
+             Math.abs(row.lat) > 90 || Math.abs(row.lon) > 180) return false;
+          const identity = row.label + ':' + row.lat + ':' + row.lon;
+          if(seen.has(identity)) return false;
+          seen.add(identity);
+          return true;
+        }).slice(0, 8);
+        if(addressSearch.cache.size >= 30) addressSearch.cache.delete(addressSearch.cache.keys().next().value);
+        addressSearch.cache.set(key, rows);
+      }
+      if(id !== addressSearch.id) return;
+      $('addressStatus').textContent = addressText(rows.length ? 'results' : 'empty');
+      for(const row of rows){
+        const item = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = row.label;
+        button.addEventListener('click', () => {
+          setLocation(row.lat, row.lon, 'aadress');
+          $('addressInput').value = row.label;
+          $('addressStatus').textContent = addressText('selected');
+          $('addressInput').focus();
+        });
+        item.append(button);
+        $('addressResults').append(item);
+      }
+      $('addressResults').classList.toggle('hidden', !rows.length);
+    } catch(error){
+      if(id === addressSearch.id) $('addressStatus').textContent = addressText('error');
+    } finally {
+      clearTimeout(timeout);
+      if(id === addressSearch.id){
+        addressSearch.controller = null;
+        $('addressSearchBtn').disabled = false;
+        $('addressForm').removeAttribute('aria-busy');
+      }
+    }
+  }
+
   function setLocation(lat, lon, source){
     lat = Number(lat); lon = Number(lon);
     if(!Number.isFinite(lat) || !Number.isFinite(lon)){
       setStatus('Asukoha koordinaadid ei ole õiged.', 'error');
       return;
     }
+    cancelAddressSearch(true);
     state.location = {lat, lon, source};
     if(state.map){
       if(state.marker) state.map.removeLayer(state.marker);
@@ -612,6 +704,7 @@
     renderChosenPlant();
   }
   function reset(){
+    cancelAddressSearch(true);
     state.analysisId += 1;
     clearPlant();
     removePhoto();
@@ -628,6 +721,11 @@
   }
 
   function bindEvents(){
+    $('addressForm').addEventListener('submit', searchAddress);
+    $('addressInput').addEventListener('input', () => cancelAddressSearch());
+    $('addressInput').addEventListener('keydown', event => {
+      if(event.key === 'Escape') cancelAddressSearch();
+    });
     document.querySelectorAll('[data-scroll]').forEach(button => button.addEventListener('click', () => scrollToId(button.dataset.scroll)));
     document.querySelectorAll('[data-quick]').forEach(button => button.addEventListener('click', () => {
       $('plantInput').value = button.dataset.quick;

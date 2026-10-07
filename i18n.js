@@ -3,10 +3,14 @@
 
   const dict = {
     et: {
+      'address.label':'Aadress Eestis','address.placeholder':'Näiteks Mustamäe tee 51, Tallinn','address.search':'Otsi',
+      'address.short':'Sisesta vähemalt 3 märki.','address.loading':'Otsin aadressi…','address.empty':'Aadressi ei leitud. Lisa linn või vald või vali koht kaardilt.',
+      'address.results':'Vali allpool õige aadress.','address.selected':'Aadress valitud. Täpsusta istutuskoht kaardil, näiteks aias või peenras.',
+      'address.error':'Aadressiotsing ei vasta. Proovi uuesti või vali koht kaardilt.',
       'nav.results':'Tulemused','nav.analyze':'Analüüsi','nav.account':'Konto','nav.demo':'Demo','nav.lab':'BioGlow Lab',
       'hero.title':'Kas see taim sobib siia?','hero.subtitle':'Vali taim ja koht. BioGlow ühendab kohaliku leviku, looduskaitse staatuse ja keskkonnaandmed üheks lihtsaks hinnanguks.','hero.start':'Alusta analüüsi →','hero.how':'Kuidas see töötab?',
       'plant.title':'Vali taim','plant.help':'Kirjuta lihtne nimi, näiteks kadakas, tamm, kask või nurmenukk.','plant.placeholder':'Otsi taime…',
-      'place.title':'Vali koht','place.help':'Klõpsa kaardil, kasuta seadme asukohta või lisa GPS-andmetega JPG/JPEG foto.','place.device':'◎ Kasuta minu asukohta','place.map':'⌖ Vali kaardilt','place.analyze':'Analüüsi sobivust →',
+      'place.title':'Vali koht','place.help':'Otsi aadressi, klõpsa kaardil, kasuta seadme asukohta või lisa GPS-andmetega JPG/JPEG foto.','place.device':'◎ Kasuta minu asukohta','place.map':'⌖ Vali kaardilt','place.analyze':'Analüüsi sobivust →',
       'result.title':'BioGlow hinnang','result.reset':'↻ Uus analüüs','how.title':'Neli lihtsat sammu',
       'lab.title':'BioGlow Lab','lab.heatmap':'Sobivuskaart','lab.whatif':'Mis siis kui…?','lab.quality':'Andmekvaliteet','lab.expert':'Eksperdi kontroll','lab.diagnostics':'Diagnostika','lab.stats':'Statistika','lab.settings':'Seaded',
       'lab.demo':'Näita demo','lab.close':'Sulge','lab.run':'Arvuta','lab.refresh':'Värskenda','lab.install':'Paigalda äpp','lab.privacy':'Privaatsusrežiim','lab.contrast':'Kõrge kontrast','lab.text':'Suurem tekst',
@@ -14,10 +18,14 @@
       'a11y.skip':'Liigu põhisisu juurde'
     },
     en: {
+      'address.label':'Address in Estonia','address.placeholder':'For example Mustamäe tee 51, Tallinn','address.search':'Search',
+      'address.short':'Enter at least 3 characters.','address.loading':'Searching for an address…','address.empty':'No address found. Add a town or municipality, or choose a location on the map.',
+      'address.results':'Choose the correct address below.','address.selected':'Address selected. Refine the planting location on the map, for example in your garden.',
+      'address.error':'Address search is unavailable. Try again or choose a location on the map.',
       'nav.results':'Results','nav.analyze':'Analyze','nav.account':'Account','nav.demo':'Demo','nav.lab':'BioGlow Lab',
       'hero.title':'Will this plant suit this place?','hero.subtitle':'Choose a plant and a location. BioGlow combines local occurrence, conservation status and environmental data into one clear assessment.','hero.start':'Start analysis →','hero.how':'How does it work?',
       'plant.title':'Choose a plant','plant.help':'Type a simple plant name, for example juniper, oak, birch or cowslip.','plant.placeholder':'Search for a plant…',
-      'place.title':'Choose a place','place.help':'Click the map, use your device location or add a JPG/JPEG photo with GPS metadata.','place.device':'◎ Use my location','place.map':'⌖ Choose on map','place.analyze':'Analyze suitability →',
+      'place.title':'Choose a place','place.help':'Search for an address, click the map, use your device location or add a JPG/JPEG photo with GPS metadata.','place.device':'◎ Use my location','place.map':'⌖ Choose on map','place.analyze':'Analyze suitability →',
       'result.title':'BioGlow assessment','result.reset':'↻ New analysis','how.title':'Four simple steps',
       'lab.title':'BioGlow Lab','lab.heatmap':'Suitability map','lab.whatif':'What if…?','lab.quality':'Data quality','lab.expert':'Expert review','lab.diagnostics':'Diagnostics','lab.stats':'Statistics','lab.settings':'Settings',
       'lab.demo':'Show demo','lab.close':'Close','lab.run':'Calculate','lab.refresh':'Refresh','lab.install':'Install app','lab.privacy':'Privacy mode','lab.contrast':'High contrast','lab.text':'Larger text',
